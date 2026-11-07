@@ -4,8 +4,7 @@ assets/external/
 .web
 *.py[cod]
 *.db
-<<<<<<< HEAD
-../.DS_Store
-=======
+.DS_Store
 .env
->>>>>>> refs/remotes/origin/main
+.env.*
+!.env.example

@@ -1,0 +1,10 @@
+───────────────────────────── Starting Reflex App ──────────────────────────────
+Warning: Unable to bind to :3000 due to: [Errno 48] Address already in use.
+Info: The fullstack will run on port 3001.
+Compiling: ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 18/17 0:00:00
+Warning: Your version (20.20.0) of Node.js is out of date. Upgrade to 22.22.0 or
+higher.
+Creating Production Build:  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 4/4 0:00:04
+───────────────────────────────── App Running ──────────────────────────────────
+App running at: http://0.0.0.0:3001/
+Info: Reflex app stopped.

@@ -6,5 +6,6 @@ config = rx.Config(
         rx.plugins.SitemapPlugin(),
         rx.plugins.TailwindV4Plugin(),
         rx.plugins.RadixThemesPlugin(),
-    ]
+    ],
+    show_built_with_reflex=False,
 )

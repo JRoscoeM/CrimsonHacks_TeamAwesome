@@ -17,12 +17,27 @@ class State(rx.State):
 
     metric: bool = False
     show_map: bool = False
+    selected_places: list[str] = []
 
     def toggle_units(self):
         self.metric = not self.metric
 
     def toggle_view(self):
         self.show_map = not self.show_map
+
+    def toggle_place(self, place_id: str):
+        """Add or remove a locally scaffolded result from comparison."""
+        if place_id in self.selected_places:
+            self.selected_places = [item for item in self.selected_places if item != place_id]
+        else:
+            self.selected_places = [*self.selected_places, place_id]
+
+    def clear_comparison(self):
+        self.selected_places = []
+
+    @rx.var
+    def has_selected_places(self) -> bool:
+        return bool(self.selected_places)
 
 
 def pill(label: str, active: bool = False) -> rx.Component:
@@ -40,7 +55,7 @@ def field(label: str, placeholder: str, value: str = "") -> rx.Component:
     return rx.vstack(
         rx.text(label, font_size="0.8rem", font_weight="700", color=MUTED),
         rx.input(placeholder=placeholder, default_value=value, width="100%", height="44px",
-                 border=f"1px solid {LINE}", border_radius="10px", background="white"),
+                 border=f"1px solid {LINE}", border_radius="10px", background="white", color=INK),
         spacing="1", width="100%",
     )
 
@@ -71,17 +86,13 @@ def header() -> rx.Component:
                     rx.vstack(
                         rx.text("Starting from", font_size="0.8rem", font_weight="700", color=MUTED),
                         rx.hstack(rx.input(default_value="Salt Lake City, UT", width="100%", height="44px",
-                                            border=f"1px solid {LINE}", border_radius="10px"),
+                                            border=f"1px solid {LINE}", border_radius="10px", color=INK),
                                   rx.button("📍 Near me", background=ACCENT_SOFT, color=ACCENT,
                                             border=f"1px solid {ACCENT}", border_radius="10px", min_height="44px",
                                             font_weight="700", white_space="nowrap"), width="100%"),
                         rx.text('Using Salt Lake City. Tap "Near me" to use your current location.',
                                 font_size="0.78rem", color=MUTED), spacing="1", align="start"),
-                    rx.vstack(
-                        rx.hstack(field("Arrive", "mm/dd/yyyy"), field("Leave", "mm/dd/yyyy"), width="100%", spacing="2"),
-                        rx.hstack(rx.text("Try:", font_size="0.85rem", color=MUTED), pill("🌸 Spring break"),
-                                  pill("☀️ Summer"), pill("❄️ Ski week"), spacing="2", wrap="wrap", width="100%"),
-                        spacing="3", align="start"),
+                    rx.hstack(field("Arrive", "mm/dd/yyyy"), field("Leave", "mm/dd/yyyy"), width="100%", spacing="2"),
                     columns="repeat(auto-fit, minmax(290px, 1fr))", spacing="5", width="100%"),
                 background="white", color=INK, border_radius="14px", padding="12px", box_shadow=SHADOW, width="100%"),
             spacing="4", width="100%", max_width="1200px", margin="0 auto"),
@@ -115,7 +126,7 @@ def badge(label: str) -> rx.Component:
                    padding="3px 9px", border_radius="999px")
 
 
-def place_card(name: str, kind: str, score: str, rating: str, drive: str, weather: str,
+def place_card(place_id: str, name: str, kind: str, score: str, rating: str, drive: str, weather: str,
                gradient: str, tags: list[str]) -> rx.Component:
     return rx.box(
         rx.box(
@@ -132,7 +143,12 @@ def place_card(name: str, kind: str, score: str, rating: str, drive: str, weathe
                     rx.text("👥 Moderate crowds"), wrap="wrap", gap="4px 12px", color=MUTED, font_size="0.85rem", width="100%"),
             rx.hstack(*[badge(tag) for tag in tags], wrap="wrap", spacing="2", width="100%"),
             rx.hstack(rx.button("Details", background=BRAND, color="white", border="0", flex="1"),
-                      rx.button("+ Compare", variant="outline", flex="1"), width="100%"),
+                      rx.button(
+                          rx.cond(State.selected_places.contains(place_id), "✓ Selected", "+ Compare"),
+                          on_click=State.toggle_place(place_id),
+                          variant="outline",
+                          flex="1",
+                      ), width="100%"),
             spacing="3", align="start", width="100%", padding="12px 14px 14px"),
         background=CARD, border_radius="14px", box_shadow=SHADOW, overflow="hidden", width="100%")
 
@@ -143,14 +159,15 @@ def results() -> rx.Component:
                   spacing="2", overflow_x="auto", width="100%"),
         rx.hstack(rx.button("⚙︎ Filters", variant="outline", display=["inline-flex", "none"]),
                   rx.box("Sort: Best for your dates ▾", border=f"1px solid {LINE}", border_radius="10px",
-                         padding="11px 12px", background="white", flex="1", color=INK), width="100%"),
+                         padding="11px 12px", background="white", flex="1", color=INK),
+                  rx.link(rx.button("Compare", variant="outline", white_space="nowrap"), href="/compare"), width="100%"),
         rx.text("24 places for Jun 13–16, from Salt Lake City", color=MUTED, font_size="0.9rem"),
         rx.grid(
-            place_card("Zion National Park", "NATIONAL PARK", "94", "4.9 (48,210)", "4 hr 18 min", "86°F",
+            place_card("zion", "Zion National Park", "NATIONAL PARK", "94", "4.9 (48,210)", "4 hr 18 min", "86°F",
                        "linear-gradient(135deg, #d88b5f, #f0c77c 55%, #55704b)", ["Hiking", "Camping", "Family friendly"]),
-            place_card("Snow Canyon State Park", "STATE PARK", "89", "4.7 (6,120)", "4 hr 4 min", "88°F",
+            place_card("snow-canyon", "Snow Canyon State Park", "STATE PARK", "89", "4.7 (6,120)", "4 hr 4 min", "88°F",
                        "linear-gradient(135deg, #c3613d, #e7a56e 55%, #9dba78)", ["Hiking", "Dog friendly", "Low crowds"]),
-            place_card("Canyonlands", "NATIONAL PARK", "87", "4.8 (18,760)", "3 hr 47 min", "82°F",
+            place_card("canyonlands", "Canyonlands", "NATIONAL PARK", "87", "4.8 (18,760)", "3 hr 47 min", "82°F",
                        "linear-gradient(135deg, #8c533d, #d8a26a 52%, #5c7850)", ["Scenic drive", "Stargazing", "Camping"]),
             columns="repeat(auto-fill, minmax(290px, 1fr))", spacing="4", width="100%"),
         spacing="4", align="start", width="100%")
@@ -170,6 +187,67 @@ def map_placeholder() -> rx.Component:
         background="white", border_radius="14px", box_shadow=SHADOW, padding="16px", width="100%")
 
 
+def selected_destination(
+    place_id: str, name: str, score: str, drive: str, rating: str, detail: str, gradient: str
+) -> rx.Component:
+    """A selected result shown on the compare route."""
+    return rx.box(
+        rx.box(height="120px", background=gradient),
+        rx.vstack(
+            rx.hstack(rx.heading(name, size="5", color=INK), rx.text(f"{score} match", color="#1E5B2E", font_weight="800"),
+                      justify="between", width="100%", align="start"),
+            rx.text(detail, color=MUTED, font_size="0.92rem"),
+            rx.grid(rx.vstack(rx.text("Drive", color=MUTED, font_size="0.75rem", font_weight="700"), rx.text(drive, font_weight="700"), spacing="0", align="start"),
+                    rx.vstack(rx.text("Rating", color=MUTED, font_size="0.75rem", font_weight="700"), rx.text(f"⭐ {rating}", font_weight="700"), spacing="0", align="start"),
+                    rx.vstack(rx.text("Crowds", color=MUTED, font_size="0.75rem", font_weight="700"), rx.text("Moderate", font_weight="700"), spacing="0", align="start"),
+                    columns="repeat(3, 1fr)", spacing="3", width="100%"),
+            rx.button("Remove from comparison", on_click=State.toggle_place(place_id), variant="outline", width="100%"),
+            spacing="3", align="start", padding="16px", width="100%"),
+        background=CARD, border_radius="14px", box_shadow=SHADOW, overflow="hidden", width="100%")
+
+
+def selected_comparison() -> rx.Component:
+    return rx.grid(
+        rx.cond(State.selected_places.contains("zion"), selected_destination("zion", "Zion National Park", "94", "4 hr 18 min", "4.9", "Iconic canyon hiking and dramatic sandstone scenery.", "linear-gradient(135deg, #d88b5f, #f0c77c 55%, #55704b)")),
+        rx.cond(State.selected_places.contains("snow-canyon"), selected_destination("snow-canyon", "Snow Canyon State Park", "89", "4 hr 4 min", "4.7", "A quieter red-rock escape near St. George.", "linear-gradient(135deg, #c3613d, #e7a56e 55%, #9dba78)")),
+        rx.cond(State.selected_places.contains("canyonlands"), selected_destination("canyonlands", "Canyonlands", "87", "3 hr 47 min", "4.8", "Big overlooks, scenic drives, and dark skies.", "linear-gradient(135deg, #8c533d, #d8a26a 52%, #5c7850)")),
+        columns="repeat(auto-fit, minmax(280px, 1fr))", spacing="4", width="100%")
+
+
+def compare_page() -> rx.Component:
+    """Comparison destination that renders only homepage selections."""
+    return rx.box(
+        rx.box(rx.hstack(rx.link("✦ Utah Wayfinder", href="/", color="white", font_weight="800", font_size="1.1rem"),
+                          rx.link("← Back to results", href="/", color="rgba(255,255,255,.92)", font_weight="600"),
+                          justify="between", width="100%", max_width="1200px", margin="0 auto"),
+               background="linear-gradient(135deg, #1F3B24, #2F5233 55%, #4A6B45)", padding="18px 32px"),
+        rx.container(
+            rx.vstack(
+                rx.vstack(rx.text("TRIP COMPARISON", color=ACCENT, font_weight="800", font_size="0.8rem", letter_spacing=".08em"),
+                          rx.heading("Compare your Utah options", size="8", color=INK),
+                          rx.text("Jun 13–16 · Starting from Salt Lake City", color=MUTED), spacing="2", align="start"),
+                rx.cond(
+                    State.has_selected_places,
+                    rx.vstack(
+                        rx.box(rx.text("Only places you selected are shown here.", color=INK, font_weight="700"),
+                               background=ACCENT_SOFT, border_radius="12px", padding="14px 16px", width="100%"),
+                        selected_comparison(),
+                        rx.hstack(rx.link(rx.button("← Keep exploring", variant="outline"), href="/"),
+                                  rx.button("Clear comparison", on_click=State.clear_comparison, variant="outline"),
+                                  spacing="3", width="100%", justify="end"),
+                        spacing="4", align="start", width="100%"),
+                    rx.box(rx.vstack(rx.heading("No places selected yet", size="6", color=INK),
+                                    rx.text("Go back to the results and use + Compare on the places you want to evaluate.", color=MUTED),
+                                    rx.link(rx.button("Browse places", background=BRAND, color="white"), href="/"),
+                                    spacing="3", align="start"),
+                           background=CARD, border_radius="14px", box_shadow=SHADOW, padding="28px", width="100%"),
+                ),
+                rx.text("Comparison values are local prototype content; live selection data can replace these cards later.", color=MUTED, font_size="0.8rem"),
+                spacing="5", align="start", padding="32px 0 72px", width="100%"),
+            max_width="1200px", padding="0 16px"),
+        min_height="100vh", background=BG, color=INK, font_family='system-ui, -apple-system, "Segoe UI", sans-serif')
+
+
 def index() -> rx.Component:
     return rx.box(
         header(),
@@ -179,12 +257,14 @@ def index() -> rx.Component:
         rx.button(rx.cond(State.show_map, "☰ List", "🗺️ Map"), on_click=State.toggle_view, position="fixed", right="16px",
                   bottom="20px", background=ACCENT, color="white", border="0", border_radius="999px", min_height="48px",
                   padding="0 18px", font_weight="800", box_shadow="0 4px 14px rgba(0,0,0,.2)"),
-        rx.box(rx.text("Compare tray", font_weight="800"), rx.text("Select places to compare", font_size="0.85rem", opacity=".85", flex="1"),
-               rx.button("Compare", background="white", color=INK, border="0"), position="fixed", display=["none", "flex"],
-               align_items="center", gap="10px", left="12px", right="84px", bottom="12px", background=INK, color="white",
-               border_radius="14px", padding="10px 12px", box_shadow="0 6px 24px rgba(0,0,0,.25)"),
+        rx.box(rx.text("Compare", font_weight="800", font_size="0.82rem"),
+               rx.text("Select places", font_size="0.78rem", opacity=".85", flex="1", white_space="nowrap"),
+               rx.link(rx.button("View", background="white", color=INK, border="0", min_height="32px", padding="0 10px", font_size="0.8rem"), href="/compare"),
+               position="fixed", display=["none", "flex"], align_items="center", gap="6px", left="8px", right="76px", bottom="8px",
+               background=INK, color="white", border_radius="10px", padding="6px 8px", box_shadow="0 4px 14px rgba(0,0,0,.2)"),
         min_height="100vh", background=BG, color=INK, font_family='system-ui, -apple-system, "Segoe UI", sans-serif')
 
 
 app = rx.App()
 app.add_page(index, title="Utah Wayfinder")
+app.add_page(compare_page, route="/compare", title="Compare Utah destinations")

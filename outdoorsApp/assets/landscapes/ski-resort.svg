@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 150" preserveAspectRatio="xMidYMid slice">
+<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D7E3CF"/><stop offset="1" stop-color="#F3EEDF"/></linearGradient></defs><rect width="400" height="150" fill="url(#sky)"/>
+<path d="M0 150 L90 48 L140 94 L212 22 L292 100 L342 58 L400 108 V150Z" fill="#7F978C"/>
+     <path d="M212 22 L238 50 L224 46 L212 57 L199 46 L186 50Z" fill="#FFFFFF"/>
+     <path d="M90 48 L108 68 L97 64 L88 72 L80 63 L73 68Z" fill="#FFFFFF"/>
+     <path d="M342 58 L356 72 L347 70 L340 76 L333 70 L328 72Z" fill="#FFFFFF"/>
+     <path d="M0 128 Q200 102 400 126 V150 H0Z" fill="#FFFFFF"/>
+     <path d="M40 102 L50.8 132 L29.200000000000003 132Z" fill="#2F5233"/><path d="M62 108 L69.92 130 L54.08 130Z" fill="#2F5233"/><path d="M330 104 L340.08 132 L319.92 132Z" fill="#2F5233"/><path d="M354 114 L361.2 134 L346.8 134Z" fill="#2F5233"/><path d="M300 116 L306.48 134 L293.52 134Z" fill="#2F5233"/>
+</svg>

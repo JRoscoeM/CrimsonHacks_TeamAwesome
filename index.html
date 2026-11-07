@@ -1,0 +1,1270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Utah Wayfinder</title>
+<meta name="description" content="Find and compare Utah parks, ski resorts, campgrounds and more for your trip dates.">
+<style>
+:root{
+  --bg:#F5F0E6; --card:#FFFFFF; --ink:#1F2A1F; --muted:#56604F; --line:#DDD5C4;
+  --brand:#2F5233; --accent:#3B6E4A; --accent-soft:#E4EEDF;
+  --warn-bg:#EDE3CF; --warn-ink:#5B4A2A;
+  --great:#1E5B2E; --good:#4D6B2A; --fair:#7A6A2E; --off:#6B7280;
+  --radius:14px; --shadow:0 1px 3px rgba(0,0,0,.08),0 4px 14px rgba(0,0,0,.06);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);font-size:16px;line-height:1.45;padding-bottom:100px}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid #2563EB;outline-offset:2px}
+[hidden]{display:none!important}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* Header */
+.top{background:linear-gradient(135deg,#1F3B24,#2F5233 55%,#4A6B45);color:#fff;padding:14px 16px 18px}
+.brandrow{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.logo{display:flex;align-items:center;gap:10px}
+.logo svg{flex:none}
+.logo h1{font-size:1.25rem;margin:0}
+.logo p{margin:0;font-size:.85rem;opacity:.92}
+.units{display:flex;background:rgba(255,255,255,.18);border-radius:999px;padding:3px}
+.units button{border:0;background:transparent;color:#fff;min-width:44px;min-height:38px;border-radius:999px;font-weight:600;padding:0 10px;font-size:.85rem}
+.units button[aria-pressed=true]{background:#fff;color:var(--brand)}
+.search{margin-top:14px;background:#fff;color:var(--ink);border-radius:var(--radius);padding:12px;display:grid;gap:12px;box-shadow:var(--shadow)}
+.field label{display:block;font-size:.8rem;font-weight:700;color:var(--muted);margin-bottom:4px}
+.locrow{display:flex;gap:8px}
+.search input[type=text],.search input[type=date]{width:100%;min-height:44px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff}
+.btn-loc{flex:none;min-height:44px;border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent);border-radius:10px;padding:0 12px;font-weight:700;white-space:nowrap}
+.dates{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.presets{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:.85rem;color:var(--muted);margin-top:8px}
+.presets button{border:1px dashed #C9BFB2;background:#fff;border-radius:999px;padding:0 12px;min-height:36px}
+.radius{display:flex;align-items:center;gap:10px;margin-top:10px}
+.field .radius label{margin:0;white-space:nowrap}
+.radius select{min-height:44px;border:1px solid var(--line);border-radius:10px;padding:0 10px;background:#fff;flex:1;min-width:0}
+.locnote{font-size:.8rem;color:var(--muted);margin:4px 0 0}
+
+/* Chips & toolbar */
+.chips{display:flex;gap:8px;overflow-x:auto;padding:12px 16px 4px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:#fff;border-radius:999px;padding:0 14px;min-height:40px;font-weight:500}
+.chip[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+.toolbar{display:flex;align-items:center;gap:8px;padding:8px 16px}
+.btn-filters{min-height:44px;border:1px solid var(--ink);background:#fff;border-radius:10px;padding:0 14px;font-weight:700;white-space:nowrap}
+.toolbar select{min-height:44px;border:1px solid var(--line);border-radius:10px;padding:0 10px;background:#fff;flex:1;min-width:0}
+.count{padding:0 16px;color:var(--muted);font-size:.9rem;margin:4px 0 10px}
+
+/* Layout */
+main{min-width:0}
+#results,#mapview{margin:0 16px}
+.cards{display:grid;gap:16px}
+.empty{background:#fff;border-radius:var(--radius);padding:24px;text-align:center;color:var(--muted)}
+
+/* Cards */
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
+.banner{position:relative;height:150px;display:block;border:0;width:100%;padding:0;background-color:#D7E3CF;background-size:cover;background-position:center bottom}
+.banner .type{position:absolute;left:10px;top:10px;background:rgba(0,0,0,.55);color:#fff;font-size:.75rem;font-weight:700;padding:4px 9px;border-radius:999px}
+.score{position:absolute;right:12px;bottom:-20px;background:#fff;color:var(--ink);border-radius:12px;box-shadow:var(--shadow);padding:6px 10px;text-align:center;line-height:1.1;min-width:64px}
+.score b{display:block;font-size:1.35rem}
+.score small{font-size:.7rem;font-weight:700}
+.s-great b,.s-great small{color:var(--great)} .s-good b,.s-good small{color:var(--good)}
+.s-fair b,.s-fair small{color:var(--fair)} .s-off b,.s-off small{color:var(--off)}
+.cbody{padding:12px 14px 14px}
+.cbody h2{font-size:1.1rem;margin:0 84px 4px 0}
+.meta{font-size:.9rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 12px}
+.badges{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.badge{font-size:.78rem;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:3px 9px;font-weight:700}
+.badge.warn{background:var(--warn-bg);color:var(--warn-ink)}
+.badge.plain{background:#F1ECE4;color:var(--ink);font-weight:500}
+.cactions{display:flex;gap:8px}
+.cactions button{flex:1;min-height:44px;border-radius:10px;font-weight:700}
+.btn-details{border:0;background:var(--brand);color:#fff}
+.btn-compare{border:1px solid #C9BFB2;background:#fff;min-height:44px;border-radius:10px;font-weight:700}
+.btn-fav{border:1px solid #C9BFB2;background:#fff;border-radius:10px;min-height:44px;min-width:48px;font-size:1.35rem;line-height:1;color:#A63D40}
+.cactions .btn-fav{flex:0 0 48px}
+.btn-fav[aria-pressed=true]{background:#F6E7E4;border-color:#A63D40}
+.btn-compare[aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+
+/* Filter sheet (mobile) / sidebar (desktop) */
+.backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:40;display:none}
+.backdrop.show{display:block}
+.filters{position:fixed;left:0;right:0;bottom:0;max-height:85vh;background:#fff;border-radius:18px 18px 0 0;z-index:50;transform:translateY(100%);transition:transform .25s ease;display:flex;flex-direction:column;visibility:hidden}
+.filters.open{transform:none;visibility:visible}
+.fhead{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line)}
+.fhead h2{margin:0;font-size:1.1rem}
+.xbtn{border:0;background:none;min-width:44px;min-height:44px;font-size:1.3rem;border-radius:10px}
+.fbody{overflow:auto;padding:0 16px 8px}
+.fbody fieldset{border:0;border-bottom:1px solid var(--line);margin:0;padding:12px 0}
+.fbody legend{font-weight:800;padding:0;margin-bottom:4px}
+.opt{display:flex;align-items:center;gap:10px;min-height:40px}
+.opt input{width:20px;height:20px;accent-color:var(--accent);flex:none}
+.ffoot{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line)}
+.ffoot button{flex:1;min-height:48px;border-radius:10px;font-weight:800}
+.btn-clear{background:#fff;border:1px solid var(--ink)}
+.btn-show{background:var(--accent);color:#fff;border:0}
+.fnote{font-size:.8rem;color:var(--muted);margin:6px 0 0}
+
+/* Compare tray & map button */
+.tray{position:fixed;left:12px;right:12px;bottom:12px;z-index:30;background:var(--ink);color:#fff;border-radius:14px;padding:10px 12px;display:flex;align-items:center;gap:8px;box-shadow:0 6px 24px rgba(0,0,0,.25);transform:translateY(160%);transition:transform .2s}
+.tray.show{transform:none}
+.tray .names{flex:1;min-width:0;font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tray button{min-height:44px;border-radius:10px;font-weight:800;border:0;padding:0 14px}
+.tray .go{background:#fff;color:var(--ink)}
+.tray .go:disabled{opacity:.6;cursor:default}
+.tray .clr{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.45)}
+.fab{position:fixed;right:16px;bottom:20px;z-index:20;border:0;background:var(--accent);color:#fff;border-radius:999px;min-height:48px;padding:0 18px;font-weight:800;box-shadow:0 4px 14px rgba(0,0,0,.2);transition:bottom .2s}
+body.has-tray .fab{bottom:88px}
+
+/* Dialogs */
+dialog{border:0;padding:0;width:100%;max-width:640px;max-height:92vh;border-radius:18px 18px 0 0;margin:auto auto 0;background:#fff;color:var(--ink)}
+dialog.wide{max-width:960px}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.dhead{position:sticky;top:0;background:#fff;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 8px 8px 16px;border-bottom:1px solid var(--line);z-index:2}
+.dhead h2{margin:0;font-size:1.15rem}
+.dbody{padding:16px}
+.dbody h3{font-size:1rem;margin:20px 0 6px}
+.dbody p{margin:0 0 8px}
+.callout{background:var(--accent-soft);border-radius:10px;padding:10px 12px;margin:12px 0}
+.facts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fact{background:var(--bg);border-radius:10px;padding:8px 10px;font-size:.92rem}
+.fact span{display:block;font-size:.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.acc{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:4px;font-size:.92rem}
+.disclaimer{font-size:.8rem;color:var(--muted);margin-top:16px!important}
+.ctable-wrap{overflow-x:auto;padding:0 0 8px}
+.ctable{border-collapse:collapse;width:100%;min-width:560px;font-size:.9rem}
+.ctable th,.ctable td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;vertical-align:top}
+.ctable thead th{background:#fff;font-size:1rem}
+.ctable tbody th{color:var(--muted);font-weight:700;width:130px;position:sticky;left:0;background:#fff}
+.best{color:var(--great);font-weight:800}
+.best::after{content:" ✓"}
+
+/* Map */
+.map{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:12px}
+.map svg{width:100%;max-height:70vh;display:block}
+.map .note{font-size:.8rem;color:var(--muted);margin:8px 0 0}
+.pin{cursor:pointer}
+.pin:focus{outline:none}
+.pin:focus circle{stroke:#2563EB;stroke-width:4}
+
+/* Month strip, lists, reviews */
+.strip{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;align-items:end;margin-top:8px}
+.mcell{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:4px 0;border-radius:6px;height:96px}
+.mcell.trip{background:var(--accent-soft);outline:2px solid var(--accent)}
+.mbar{width:70%;border-radius:4px 4px 0 0}
+.c-great{background:#16A34A}.c-good{background:#65A30D}.c-fair{background:#C9B97A}.c-off{background:#9CA3AF}
+.mcrowd{font-size:.75rem;letter-spacing:-1px;color:#6B4F2A;line-height:1;height:10px;margin-top:3px}
+.mname{font-size:.72rem;font-weight:700;color:var(--muted);margin-top:2px}
+.list{margin:6px 0 0;padding-left:20px}.list li{margin:4px 0}
+.checklist{list-style:none;padding:0;margin:6px 0 0}.checklist li{margin:4px 0}.checklist li::before{content:"☐  ";color:var(--accent)}
+.review{background:var(--bg);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.review .stars{color:#7A6A2E;letter-spacing:1px}
+.review .who{font-size:.85rem;color:var(--muted)}
+.callout.warn{background:var(--warn-bg);color:var(--warn-ink)}
+
+.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 14px;border-radius:10px;font-size:.9rem;z-index:60;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw}
+.toast.show{opacity:1}
+
+@media (min-width:700px){ dialog{border-radius:18px;margin:auto} }
+@media (min-width:900px){
+  .top{padding:18px 32px 22px}
+  .brandrow,.search{max-width:1200px;margin-left:auto;margin-right:auto}
+  .search{grid-template-columns:1.3fr 1fr;align-items:start;margin-top:16px}
+  .layout{display:grid;grid-template-columns:280px 1fr;gap:24px;max-width:1200px;margin:16px auto 0;padding:0 32px}
+  .filters{position:sticky;top:12px;transform:none;visibility:visible;max-height:calc(100vh - 24px);border-radius:var(--radius);box-shadow:var(--shadow);align-self:start;z-index:1}
+  .filters .xbtn,.ffoot .btn-show,.btn-filters{display:none}
+  .backdrop{display:none!important}
+  .chips,.toolbar,.count{padding-left:0;padding-right:0}
+  #results,#mapview{margin:0}
+  .cards{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brandrow">
+    <div class="logo">
+      <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="none" stroke="#fff" stroke-width="2.5"/><polygon points="20,6 25,20 20,34 15,20" fill="#fff"/><polygon points="20,6 25,20 15,20" fill="#E8DCC0"/></svg>
+      <div><h1>Utah Wayfinder</h1><p>From powder to sandstone</p></div>
+    </div>
+    <div class="units" role="group" aria-label="Units">
+      <button type="button" data-units="F" aria-pressed="true">°F · mi</button>
+      <button type="button" data-units="C" aria-pressed="false">°C · km</button>
+    </div>
+  </div>
+
+  <form class="search" onsubmit="return false">
+    <div class="field">
+      <label for="loc">Starting from</label>
+      <div class="locrow">
+        <input type="text" id="loc" list="cities" value="Salt Lake City, UT" autocomplete="off">
+        <button type="button" class="btn-loc" id="useLoc">📍 Near me</button>
+      </div>
+      <datalist id="cities"></datalist>
+      <p class="locnote" id="locNote">Using Salt Lake City. Tap "Near me" to use your current location.</p>
+      <div class="radius"><label for="radius">Search within</label><select id="radius"></select></div>
+    </div>
+    <div class="field">
+      <div class="dates">
+        <div><label for="start">Arrive</label><input type="date" id="start"></div>
+        <div><label for="end">Leave</label><input type="date" id="end"></div>
+      </div>
+      <div class="presets"><span>Try:</span>
+        <button type="button" data-preset="spring">🌸 Spring break</button>
+        <button type="button" data-preset="summer">☀️ Summer</button>
+        <button type="button" data-preset="ski">❄️ Ski week</button>
+      </div>
+    </div>
+  </form>
+</header>
+
+<div class="layout">
+  <div class="backdrop" id="backdrop"></div>
+  <aside class="filters" id="filters" aria-label="Filters">
+    <div class="fhead"><h2>Filters</h2><button class="xbtn" id="fclose" aria-label="Close filters">✕</button></div>
+    <div class="fbody" id="fbody"></div>
+    <div class="ffoot"><button class="btn-clear" id="clearAll">Clear all</button><button class="btn-show" id="showRes">Show results</button></div>
+  </aside>
+
+  <main>
+    <div class="chips" id="chips" role="group" aria-label="Quick filters"></div>
+    <div class="toolbar">
+      <button class="btn-filters" id="openFilters">⚙︎ Filters</button>
+      <label class="sr-only" for="sort">Sort by</label>
+      <select id="sort">
+        <option value="score">Sort: Best for your dates</option>
+        <option value="drive">Sort: Closest</option>
+        <option value="rating">Sort: Top rated</option>
+        <option value="crowds">Sort: Fewest crowds</option>
+      </select>
+    </div>
+    <p class="count" id="count" aria-live="polite"></p>
+    <div id="results" class="cards"></div>
+    <div id="mapview" class="map" hidden></div>
+  </main>
+</div>
+
+<button class="fab" id="fab">🗺️ Map</button>
+
+<div class="tray" id="tray" aria-live="polite">
+  <div class="names" id="trayNames"></div>
+  <button class="clr" id="trayClear">Clear</button>
+  <button class="go" id="trayGo">Compare</button>
+</div>
+
+<dialog id="detail" aria-labelledby="detailTitle"></dialog>
+<dialog id="compare" class="wide" aria-labelledby="compareTitle"></dialog>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+// Utah Wayfinder: SAMPLE DATA for the hackathon prototype.
+// Facts are approximate; spot-check anything you say out loud in the demo.
+//
+// Field names follow RIDB (Recreation.gov) where RIDB has one:
+//   FacilityID, FacilityName, FacilityDescription, FacilityLatitude, FacilityLongitude, Activities
+// Everything else (Type, Season, Crowds, HighsF, Access, tips) is our own "enrichment" layer
+// that RIDB does not provide. When the Python team swaps in RIDB, they keep these extra fields.
+//
+// Season:  0-100 score per month (Jan..Dec) for how good a visit is that month.
+// Crowds:  1 = low, 2 = moderate, 3 = busy, per month.
+// HighsF:  average daily high in °F per month.
+// CostTier: 0 = free, 1 = under $20, 2 = $20+.
+
+const SEASON = {
+  desert:     [45, 50, 75, 92, 90, 70, 55, 58, 85, 95, 70, 45],
+  dixie:      [70, 75, 90, 92, 80, 50, 35, 38, 65, 90, 85, 70],
+  highDesert: [55, 55, 60, 70, 88, 95, 90, 88, 92, 80, 60, 55],
+  ski:        [98, 100, 95, 70, 15, 10, 10, 10, 12, 20, 60, 92],
+  skiSummer:  [98, 100, 95, 65, 30, 60, 72, 72, 65, 45, 55, 92],
+  lake:       [25, 25, 35, 45, 65, 90, 100, 98, 72, 45, 25, 25],
+  valley:     [50, 55, 70, 80, 70, 55, 45, 50, 80, 85, 65, 50],
+  alpine:     [0, 0, 0, 0, 10, 60, 95, 95, 85, 30, 0, 0],
+  saltflats:  [50, 50, 60, 62, 65, 72, 72, 75, 85, 80, 60, 50],
+  cave:       [0, 0, 0, 0, 80, 92, 92, 90, 85, 55, 0, 0],
+  yearRound:  [95, 95, 90, 80, 80, 88, 92, 92, 88, 82, 80, 92]
+};
+
+const CROWDS = {
+  bigPark: [1, 1, 2, 3, 3, 3, 3, 3, 3, 3, 2, 1],
+  midPark: [1, 1, 2, 2, 3, 3, 3, 3, 2, 2, 1, 1],
+  quiet:   [1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 1, 1],
+  ski:     [3, 3, 3, 2, 1, 1, 1, 1, 1, 1, 1, 3],
+  summer:  [1, 1, 1, 1, 2, 3, 3, 3, 2, 1, 1, 1]
+};
+
+const HIGHS_F = {
+  stgeorge:  [54, 60, 68, 77, 87, 97, 102, 100, 92, 79, 64, 54],
+  moab:      [44, 52, 64, 73, 83, 94, 100, 97, 88, 74, 57, 45],
+  bryce:     [37, 40, 46, 54, 64, 75, 81, 78, 70, 58, 45, 37],
+  capreef:   [42, 48, 57, 65, 75, 86, 91, 88, 80, 66, 52, 42],
+  wasatch:   [30, 32, 38, 44, 53, 64, 73, 71, 62, 49, 37, 30],
+  parkcity:  [33, 36, 44, 52, 62, 73, 81, 79, 70, 57, 43, 34],
+  slc:       [38, 44, 54, 62, 72, 84, 93, 91, 79, 64, 50, 38],
+  bearlake:  [30, 34, 43, 52, 62, 72, 81, 80, 70, 57, 42, 31],
+  uintas:    [25, 28, 34, 40, 50, 62, 70, 68, 59, 46, 33, 26],
+  brianhead: [32, 33, 38, 44, 53, 65, 72, 70, 62, 51, 39, 32]
+};
+
+const A = (wheelchair, stroller, paved, restrooms, quiet, shade, medical) =>
+  ({ wheelchair, stroller, paved, restrooms, quiet, shade, medical });
+
+const PLACES = [
+  {
+    FacilityID: "zion", FacilityName: "Zion National Park", Type: "National Park",
+    FacilityDescription: "Towering red and cream cliffs, the Virgin River, and famous hikes like The Narrows and Angels Landing. Utah's most visited park.",
+    FacilityLatitude: 37.2982, FacilityLongitude: -113.0263, ElevationFt: 4000,
+    Activities: ["Hiking", "Camping", "Biking", "Water", "Scenic Drive", "Wildlife"],
+    Rating: 4.9, Reviews: 48210, Cost: "$35 per vehicle (7 days)", CostTier: 2,
+    Reservation: false, ReservationNote: "No reservation to enter. Angels Landing needs a permit from a lottery on Recreation.gov.",
+    Season: SEASON.desert, Crowds: CROWDS.bigPark, HighsF: HIGHS_F.stgeorge,
+    Access: A(true, true, true, true, false, false, false),
+    AccessDetails: "Riverside Walk is paved, about 2.2 miles round trip and mostly flat. The Pa'rus Trail is paved. Park shuttles are wheelchair accessible.",
+    QuietTime: "Weekday mornings before 8am, or December to February.",
+    Tip: "Summer highs pass 100°F. Hike early, carry at least 1 gallon (4 L) of water per person per day.",
+    DogFriendly: false, FamilyFriendly: true
+  },
+  {
+    FacilityID: "arches", FacilityName: "Arches National Park", Type: "National Park",
+    FacilityDescription: "Over 2,000 natural stone arches, including Delicate Arch, the arch on Utah's license plate.",
+    FacilityLatitude: 38.7331, FacilityLongitude: -109.5925, ElevationFt: 4800,
+    Activities: ["Hiking", "Camping", "Scenic Drive", "Stargazing"],
+    Rating: 4.8, Reviews: 39120, Cost: "$30 per vehicle (7 days)", CostTier: 2,
+    Reservation: true, ReservationNote: "Timed entry reservation needed in peak season (spring through fall). Book on Recreation.gov.",
+    Season: SEASON.desert, Crowds: CROWDS.bigPark, HighsF: HIGHS_F.moab,
+    Access: A(true, true, true, true, false, false, true),
+    AccessDetails: "Park Avenue Viewpoint, the Windows area and the lower Delicate Arch Viewpoint have accessible viewing. Most trails are uneven slickrock.",
+    QuietTime: "Before 7am or after 5pm; winter is very quiet.",
+    Tip: "Moab is the nearest town (10 minutes). Very little shade; bring sun protection.",
+    DogFriendly: false, FamilyFriendly: true
+  },
+  {
+    FacilityID: "bryce", FacilityName: "Bryce Canyon National Park", Type: "National Park",
+    FacilityDescription: "A giant natural amphitheater filled with orange hoodoos (rock spires). Stunning at sunrise and under snow.",
+    FacilityLatitude: 37.5930, FacilityLongitude: -112.1871, ElevationFt: 8000,
+    Activities: ["Hiking", "Camping", "Scenic Drive", "Stargazing", "Skiing"],
+    Rating: 4.9, Reviews: 31540, Cost: "$35 per vehicle (7 days)", CostTier: 2,
+    Reservation: false, ReservationNote: "",
+    Season: SEASON.highDesert, Crowds: CROWDS.bigPark, HighsF: HIGHS_F.bryce,
+    Access: A(true, true, true, true, false, false, false),
+    AccessDetails: "The Rim Trail between Sunset Point and Sunrise Point is paved and mostly flat (about 1 mile). Viewpoints along the main road are accessible.",
+    QuietTime: "Sunrise on weekdays; winter for snow and solitude.",
+    Tip: "Elevation is 8,000 to 9,000 ft (2,400 to 2,700 m). Take it slow, drink water, and pack layers even in summer.",
+    DogFriendly: false, FamilyFriendly: true
+  },
+  {
+    FacilityID: "canyonlands", FacilityName: "Canyonlands: Island in the Sky", Type: "National Park",
+    FacilityDescription: "Huge canyon views from a mesa top, carved by the Colorado and Green Rivers. Home of Mesa Arch at sunrise.",
+    FacilityLatitude: 38.4597, FacilityLongitude: -109.8210, ElevationFt: 6000,
+    Activities: ["Hiking", "Camping", "Biking", "Scenic Drive", "Stargazing"],
+    Rating: 4.8, Reviews: 18760, Cost: "$30 per vehicle (7 days)", CostTier: 2,
+    Reservation: false, ReservationNote: "No entry reservation. Backcountry camping and White Rim trips need permits.",
+    Season: SEASON.desert, Crowds: CROWDS.midPark, HighsF: HIGHS_F.moab,
+    Access: A(true, true, true, true, true, false, false),
+    AccessDetails: "The visitor center and several overlooks, including Grand View Point overlook, are accessible. Mesa Arch trail is uneven.",
+    QuietTime: "Most days outside of sunrise at Mesa Arch.",
+    Tip: "No food or gas inside the park. Fill up in Moab, about 45 minutes away.",
+    DogFriendly: false, FamilyFriendly: true
+  },
+  {
+    FacilityID: "capitolreef", FacilityName: "Capitol Reef National Park", Type: "National Park",
+    FacilityDescription: "A 100-mile wrinkle in the earth, historic Fruita orchards where you can pick fruit in season, and very dark night skies.",
+    FacilityLatitude: 38.2832, FacilityLongitude: -111.2471, ElevationFt: 5500,
+    Activities: ["Hiking", "Camping", "Scenic Drive", "Stargazing", "Wildlife"],
+    Rating: 4.8, Reviews: 14230, Cost: "$20 per vehicle (7 days)", CostTier: 2,
+    Reservation: false, ReservationNote: "",
+    Season: SEASON.desert, Crowds: CROWDS.quiet, HighsF: HIGHS_F.capreef,
+    Access: A(true, true, true, true, true, true, false),
+    AccessDetails: "Visitor center, Gifford Homestead and parts of the Fruita orchards are accessible. Shady picnic areas under orchard trees.",
+    QuietTime: "Most of the year; it is one of the least crowded of Utah's five national parks.",
+    Tip: "Try a fresh pie from the Gifford Homestead (seasonal). Cell service is limited.",
+    DogFriendly: false, FamilyFriendly: true
+  },
+  {
+    FacilityID: "snowcanyon", FacilityName: "Snow Canyon State Park", Type: "State Park",
+    FacilityDescription: "Red and white sandstone, lava tubes, and sand dunes just outside St. George. A great pick when Zion is packed.",
+    FacilityLatitude: 37.2031, FacilityLongitude: -113.6400, ElevationFt: 3200,
+    Activities: ["Hiking", "Camping", "Biking", "Wildlife"],
+    Rating: 4.7, Reviews: 6120, Cost: "About $15 per vehicle", CostTier: 1,
+    Reservation: false, ReservationNote: "",
+    Season: SEASON.dixie, Crowds: CROWDS.midPark, HighsF: HIGHS_F.stgeorge,
+    Access: A(true, true, true, true, true, false, true),
+    AccessDetails: "The paved Whiptail Trail runs about 3 miles along the canyon floor; good for wheelchairs, strollers and bikes.",
+    QuietTime: "Weekday mornings; winter is mild and pleasant here.",
+    Tip: "Southern Utah is warmest here. A good winter destination when the north is snowy.",
+    DogFriendly: true, FamilyFriendly: true
+  },
+  {
+    FacilityID: "deadhorse", FacilityName: "Dead Horse Point State Park", Type: "State Park",
+    FacilityDescription: "One of the most photographed overlooks in the West: a gooseneck of the Colorado River 2,000 feet below.",
+    FacilityLatitude: 38.4708, FacilityLongitude: -109.7409, ElevationFt: 5900,
+    Activities: ["Hiking", "Camping", "Biking", "Stargazing", "Scenic Drive"],
+    Rating: 4.8, Reviews: 7890, Cost: "About $20 per vehicle", CostTier: 2,
+    Reservation: false, ReservationNote: "Campsites and yurts book up; reserve ahead in spring and fall.",
+    Season: SEASON.desert, Crowds: CROWDS.midPark, HighsF: HIGHS_F.moab,
+    Access: A(true, true, true, true, true, false, false),
+    AccessDetails: "The main overlook and visitor center are accessible, with paved sections of the rim trail.",
+    QuietTime: "Weekdays and evenings; stay for the stars (it is a Dark Sky Park).",
+    Tip: "Combine with Canyonlands: Island in the Sky; they are 15 minutes apart.",
+    DogFriendly: true, FamilyFriendly: true
+  },
+  {
+    FacilityID: "goblin", FacilityName: "Goblin Valley State Park", Type: "State Park",
+    FacilityDescription: "A valley of thousands of mushroom-shaped rock 'goblins' that kids can climb and explore freely.",
+    FacilityLatitude: 38.5733, FacilityLongitude: -110.7071, ElevationFt: 5000,
+    Activities: ["Hiking", "Camping", "Stargazing"],
+    Rating: 4.7, Reviews: 5430, Cost: "About $20 per vehicle", CostTier: 2,
+    Reservation: false, ReservationNote: "",
+    Season: SEASON.desert, Crowds: CROWDS.quiet, HighsF: HIGHS_F.moab,
+    Access: A(false, false, false, true, true, false, false),
+    AccessDetails: "Overlook near the parking area gives a view of the valley. The valley floor is sand and uneven rock.",
+    QuietTime: "Weekdays outside spring break.",
+    Tip: "Remote: the nearest town with services is Hanksville, about 30 minutes away.",
+    DogFriendly: true, FamilyFriendly: true
+  },
+  {
+    FacilityID: "antelope", FacilityName: "Antelope Island State Park", Type: "State Park",
+    FacilityDescription: "Free-roaming bison, beaches on the Great Salt Lake, and sunsets 40 minutes from Salt Lake City.",
+    FacilityLatitude: 41.0400, FacilityLongitude: -112.2500, ElevationFt: 4200,
+    Activities: ["Hiking", "Biking", "Water", "Wildlife", "Scenic Drive", "Camping"],
+    Rating: 4.6, Reviews: 9870, Cost: "About $15 per vehicle", CostTier: 1,
+    Reservation: false, ReservationNote: "",
+    Season: SEASON.valley, Crowds: CROWDS.quiet, HighsF: HIGHS_F.slc,
+    Access: A(true, true, true, true, true, false, true),
+    AccessDetails: "Visitor center, Fielding Garr Ranch and the causeway road are accessible. Beach access is sandy.",
+    QuietTime: "Weekdays; avoid late May and June when biting gnats are heavy.",
+    Tip: "You float easily in the Great Salt Lake because it is so salty. Rinse off at the beach showers.",
+    DogFriendly: true, FamilyFriendly: true
+  },
+  {
+    FacilityID: "bearlake", FacilityName: "Bear Lake State Park", Type: "State Park",
+    FacilityDescription: "The 'Caribbean of the Rockies': bright turquoise water, sandy beaches and famous raspberry shakes.",
+    FacilityLatitude: 41.9500, FacilityLongitude: -111.4000, ElevationFt: 5900,
+    Activities: ["Water", "Camping", "Biking", "Scenic Drive"],
+    Rating: 4.6, Reviews: 8120, Cost: "About $15 per vehicle", CostTier: 1,
+    Reservation: true, ReservationNote: "Summer campsites sell out; reserve months ahead.",
+    Season: SEASON.lake, Crowds: CROWDS.summer, HighsF: HIGHS_F.bearlake,
+    Access: A(false, true, false, true, false, false, false),
+    AccessDetails: "Restrooms and some parking are accessible. Beaches are sand; check with the park about beach access options.",
+    QuietTime: "Weekdays in June or September.",
+    Tip: "The water stays cool even in July. Try a raspberry shake in Garden City.",
+    DogFriendly: true, FamilyFriendly: true
+  },
+  {
+    FacilityID: "snowbird", FacilityName: "Snowbird", Type: "Ski Resort",
+    FacilityDescription: "Deep powder, steep terrain and an aerial tram to 11,000 feet, about 40 minutes from Salt Lake City.",
+    FacilityLatitude: 40.5810, FacilityLongitude: -111.6566, ElevationFt: 7760,
+    Activities: ["Skiing", "Hiking", "Biking"],
+    Rating: 4.7, Reviews: 12450, Cost: "Lift tickets $150+ per day", CostTier: 2,
+    Reservation: false, ReservationNote: "Canyon road can close for avalanche control. Check UDOT and parking rules before you go.",
+    Season: SEASON.ski, Crowds: CROWDS.ski, HighsF: HIGHS_F.wasatch,
+    Access: A(true, false, false, true, false, false, false),
+    AccessDetails: "The tram and main buildings are accessible. Adaptive ski lessons are offered at the resort through an adaptive sports partner.",
+    QuietTime: "Midweek, especially Tuesday to Thursday.",
+    Tip: "Utah snow is light and dry. Weekends and powder days bring heavy canyon traffic; go early.",
+    DogFriendly: false, FamilyFriendly: true
+  },
+  {
+    FacilityID: "parkcity", FacilityName: "Park City Mountain", Type: "Ski Resort",
+    FacilityDescription: "One of the largest ski resorts in the US, with a historic mountain town, and mountain biking and alpine coasters in summer.",
+    FacilityLatitude: 40.6514, FacilityLongitude: -111.5080, ElevationFt: 6900,
+    Activities: ["Skiing", "Biking", "Hiking"],
+    Rating: 4.6, Reviews: 15320, Cost: "Lift tickets $150+ per day", CostTier: 2,
+    Reservation: false, ReservationNote: "",
+    Season: SEASON.skiSummer, Crowds: CROWDS.ski, HighsF: HIGHS_F.parkcity,
+    Access: A(true, true, true, true, false, false, true),
+    AccessDetails: "Base areas and Main Street are accessible. Adaptive skiing is available nearby through the National Ability Center.",
+    QuietTime: "Midweek in January (outside holidays).",
+    Tip: "Free town buses connect the resort and Main Street, so you may not need a car.",
+    DogFriendly: false, FamilyFriendly: true
+  },
+  {
+    FacilityID: "brianhead", FacilityName: "Brian Head Resort", Type: "Ski Resort",
+    FacilityDescription: "Southern Utah's ski resort, with family-friendly runs and the highest base elevation in Utah. Close to Cedar City.",
+    FacilityLatitude: 37.7022, FacilityLongitude: -112.8499, ElevationFt: 9600,
+    Activities: ["Skiing", "Biking", "Hiking"],
+    Rating: 4.4, Reviews: 4320, Cost: "Lift tickets $80+ per day", CostTier: 2,
+    Reservation: false, ReservationNote: "",
+    Season: SEASON.ski, Crowds: CROWDS.ski, HighsF: HIGHS_F.brianhead,
+    Access: A(false, false, false, true, false, false, false),
+    AccessDetails: "Lodges have accessible restrooms. Ask the resort about adaptive lessons.",
+    QuietTime: "Midweek outside holidays.",
+    Tip: "You can ski in the morning and see red rock at Cedar Breaks or Zion the same weekend.",
+    DogFriendly: false, FamilyFriendly: true
+  },
+  {
+    FacilityID: "sundance", FacilityName: "Sundance Mountain Resort", Type: "Ski Resort",
+    FacilityDescription: "A small, artsy resort under Mount Timpanogos with uncrowded runs, a zipline and Stewart Falls hikes in summer.",
+    FacilityLatitude: 40.3930, FacilityLongitude: -111.5880, ElevationFt: 6100,
+    Activities: ["Skiing", "Hiking", "Biking"],
+    Rating: 4.5, Reviews: 3980, Cost: "Lift tickets $100+ per day", CostTier: 2,
+    Reservation: false, ReservationNote: "",
+    Season: SEASON.skiSummer, Crowds: CROWDS.quiet, HighsF: HIGHS_F.parkcity,
+    Access: A(false, true, false, true, true, true, true),
+    AccessDetails: "Main lodge and restaurants are accessible; trails are mostly natural surface.",
+    QuietTime: "Most weekdays; a calmer option than the big resorts.",
+    Tip: "About 30 minutes from Provo. Fall colors in late September are spectacular.",
+    DogFriendly: false, FamilyFriendly: true
+  },
+  {
+    FacilityID: "nac", FacilityName: "National Ability Center", Type: "Adaptive Recreation",
+    FacilityDescription: "Park City nonprofit offering adaptive skiing, biking, horseback riding, climbing and more for people of all abilities and their families.",
+    FacilityLatitude: 40.7110, FacilityLongitude: -111.5490, ElevationFt: 6500,
+    Activities: ["Skiing", "Biking", "Water", "Hiking"],
+    Rating: 4.9, Reviews: 1240, Cost: "Lesson prices vary; scholarships available", CostTier: 2,
+    Reservation: true, ReservationNote: "Book lessons and programs ahead so staff and equipment can be matched to your needs.",
+    Season: SEASON.yearRound, Crowds: CROWDS.quiet, HighsF: HIGHS_F.parkcity,
+    Access: A(true, true, true, true, true, true, true),
+    AccessDetails: "Built for accessibility. Programs support physical, cognitive, sensory and developmental disabilities, with adaptive equipment and trained instructors.",
+    QuietTime: "Ask staff about quieter session times.",
+    Tip: "A great anchor for a family trip. Pair it with Park City for the rest of the group.",
+    DogFriendly: false, FamilyFriendly: true
+  },
+  {
+    FacilityID: "saltflats", FacilityName: "Bonneville Salt Flats", Type: "Scenic Area",
+    FacilityDescription: "A bright white salt plain so flat you can see the curve of the earth. Famous for land-speed racing and photos.",
+    FacilityLatitude: 40.7700, FacilityLongitude: -113.8800, ElevationFt: 4200,
+    Activities: ["Scenic Drive", "Stargazing"],
+    Rating: 4.5, Reviews: 6750, Cost: "Free", CostTier: 0,
+    Reservation: false, ReservationNote: "",
+    Season: SEASON.saltflats, Crowds: CROWDS.quiet, HighsF: HIGHS_F.slc,
+    Access: A(true, true, false, true, true, false, false),
+    AccessDetails: "The rest area viewpoint off I-80 has accessible parking and restrooms. The salt surface is flat but can be wet or soft.",
+    QuietTime: "Almost any time; sunrise and sunset are best for photos.",
+    Tip: "In spring the flats are often covered in water. Wash your car afterward; salt is corrosive.",
+    DogFriendly: true, FamilyFriendly: true
+  },
+  {
+    FacilityID: "timpcave", FacilityName: "Timpanogos Cave National Monument", Type: "National Monument",
+    FacilityDescription: "A ranger-guided tour of three colorful caves high in American Fork Canyon.",
+    FacilityLatitude: 40.4440, FacilityLongitude: -111.7050, ElevationFt: 5600,
+    Activities: ["Hiking", "Scenic Drive"],
+    Rating: 4.7, Reviews: 5210, Cost: "Tour tickets about $12 per adult", CostTier: 1,
+    Reservation: true, ReservationNote: "Tour tickets required and often sell out; book on Recreation.gov. Open late spring to early fall.",
+    Season: SEASON.cave, Crowds: CROWDS.summer, HighsF: HIGHS_F.parkcity,
+    Access: A(false, false, true, true, false, true, true),
+    AccessDetails: "The trail is paved but steep: about 1.5 miles each way with 1,000 ft of climbing. Not wheelchair or stroller friendly. The visitor center is accessible.",
+    QuietTime: "The first tour of a weekday.",
+    Tip: "The cave stays about 45°F (7°C) all year; bring a jacket even in July.",
+    DogFriendly: false, FamilyFriendly: true
+  },
+  {
+    FacilityID: "watchman", FacilityName: "Watchman Campground (Zion)", Type: "Campground",
+    FacilityDescription: "Zion's main campground, by the Virgin River and a short walk to the visitor center and shuttle.",
+    FacilityLatitude: 37.1980, FacilityLongitude: -112.9870, ElevationFt: 3900,
+    Activities: ["Camping", "Hiking", "Biking", "Water", "Stargazing"],
+    Rating: 4.6, Reviews: 3870, Cost: "About $20 to $30 per night", CostTier: 2,
+    Reservation: true, ReservationNote: "Reservations open months ahead on Recreation.gov and fill fast.",
+    Season: SEASON.desert, Crowds: CROWDS.bigPark, HighsF: HIGHS_F.stgeorge,
+    Access: A(true, true, true, true, false, true, false),
+    AccessDetails: "Accessible campsites and restrooms are available. Connects to the paved Pa'rus Trail.",
+    QuietTime: "Weeknights in late fall.",
+    Tip: "Many sites have shade trees, but summer nights stay warm. Bring a fan.",
+    DogFriendly: true, FamilyFriendly: true
+  },
+  {
+    FacilityID: "uintas", FacilityName: "Mirror Lake Highway (Uinta Mountains)", Type: "Scenic Area",
+    FacilityDescription: "A high mountain byway past alpine lakes, wildflowers and pine forest. Cool escape from summer heat.",
+    FacilityLatitude: 40.7000, FacilityLongitude: -110.8800, ElevationFt: 10000,
+    Activities: ["Scenic Drive", "Hiking", "Camping", "Water", "Wildlife"],
+    Rating: 4.8, Reviews: 4560, Cost: "Recreation pass about $10 per vehicle (3 days)", CostTier: 1,
+    Reservation: false, ReservationNote: "The upper highway closes for snow, usually from fall to late spring.",
+    Season: SEASON.alpine, Crowds: CROWDS.summer, HighsF: HIGHS_F.uintas,
+    Access: A(true, true, true, true, true, true, false),
+    AccessDetails: "Some lakeside areas have accessible paths and fishing spots. Confirm current conditions with the forest service.",
+    QuietTime: "Weekdays; side lakes away from Mirror Lake itself.",
+    Tip: "Over 10,000 ft (3,000 m). Afternoon thunderstorms are common in summer; start early.",
+    DogFriendly: true, FamilyFriendly: true
+  },
+  {
+    FacilityID: "kodachrome", FacilityName: "Kodachrome Basin State Park", Type: "State Park",
+    FacilityDescription: "Colorful rock chimneys and quiet trails near Bryce Canyon, named by National Geographic after the film.",
+    FacilityLatitude: 37.5000, FacilityLongitude: -111.9930, ElevationFt: 5800,
+    Activities: ["Hiking", "Camping", "Biking", "Stargazing"],
+    Rating: 4.7, Reviews: 2980, Cost: "About $15 per vehicle", CostTier: 1,
+    Reservation: false, ReservationNote: "",
+    Season: SEASON.desert, Crowds: CROWDS.quiet, HighsF: HIGHS_F.capreef,
+    Access: A(false, true, false, true, true, false, false),
+    AccessDetails: "The short Nature Trail is mostly flat; check the surface for wheelchairs. Campground restrooms are accessible.",
+    QuietTime: "Nearly always; a calm base camp near Bryce.",
+    Tip: "Lower and warmer than Bryce, about 30 minutes away.",
+    DogFriendly: true, FamilyFriendly: true
+  },
+  {
+    FacilityID: "naturalbridges", FacilityName: "Natural Bridges National Monument", Type: "National Monument",
+    FacilityDescription: "Three massive stone bridges carved by water, and the world's first International Dark Sky Park.",
+    FacilityLatitude: 37.6000, FacilityLongitude: -110.0000, ElevationFt: 6500,
+    Activities: ["Hiking", "Camping", "Scenic Drive", "Stargazing"],
+    Rating: 4.7, Reviews: 2340, Cost: "$20 per vehicle (7 days)", CostTier: 2,
+    Reservation: false, ReservationNote: "",
+    Season: SEASON.desert, Crowds: CROWDS.quiet, HighsF: HIGHS_F.capreef,
+    Access: A(true, true, true, true, true, false, false),
+    AccessDetails: "The 9-mile Bridge View Drive has overlooks of all three bridges; several overlooks and the visitor center are accessible.",
+    QuietTime: "Almost always quiet; remote and peaceful.",
+    Tip: "Very remote. Fill your gas tank in Blanding (about 1 hour).",
+    DogFriendly: false, FamilyFriendly: true
+  }
+];
+
+// ---- Things to do + SAMPLE reviews (placeholder text, not real reviews) ----
+// In the real build, reviews would come from users or a reviews API.
+const EXTRAS = {
+  zion: { ThingsToDo: ["Ride the shuttle up Zion Canyon Scenic Drive", "Wade The Narrows (summer and fall)", "Stroll the paved Riverside Walk"],
+    UserReviews: [["Priya, visiting from India", 5, "The shuttle made it easy with my parents. Riverside Walk was perfect for my dad's wheelchair."], ["Jake, Salt Lake City", 4, "Unreal views, but go early. Parking was full by 8am in October."]] },
+  arches: { ThingsToDo: ["Hike to Delicate Arch at sunset", "Walk the Windows loop", "Drive to Park Avenue viewpoint"],
+    UserReviews: [["Lena, Germany", 5, "Book the timed entry ahead! Sunset at Delicate Arch was the highlight of our USA trip."], ["Marcus, Provo", 4, "Hot and no shade in July. Spring was much better."]] },
+  bryce: { ThingsToDo: ["Watch sunrise at Sunrise Point", "Hike Navajo Loop and Queen's Garden", "Join a ranger stargazing program"],
+    UserReviews: [["Aiko, Japan", 5, "Snow on the hoodoos in January was magical, and almost nobody there."], ["Dana, Ogden", 5, "The paved rim section worked great for our stroller."]] },
+  canyonlands: { ThingsToDo: ["Catch sunrise at Mesa Arch", "Stand at Grand View Point", "Mountain bike the White Rim (permit)"],
+    UserReviews: [["Tom, UK", 5, "Felt like the edge of the world. Much quieter than Arches."]] },
+  capitolreef: { ThingsToDo: ["Pick fruit in the Fruita orchards (seasonal)", "Drive the Scenic Drive", "Hike to Hickman Bridge"],
+    UserReviews: [["Rosa, Mexico City", 5, "The pie! And the stars at night were the best I've ever seen."], ["Ben, Logan", 4, "Peaceful and uncrowded. Bring snacks; few services."]] },
+  snowcanyon: { ThingsToDo: ["Bike or roll the paved Whiptail Trail", "Explore the lava tubes", "Play on the Sand Dunes"],
+    UserReviews: [["Megan, St. George", 5, "Our go-to winter hike spot. The paved trail is great for little kids."]] },
+  deadhorse: { ThingsToDo: ["See sunset at the main overlook", "Ride the Intrepid bike trails", "Stay for a dark sky program"],
+    UserReviews: [["Carlos, Spain", 5, "Easy walk to one of the best views of the trip."]] },
+  goblin: { ThingsToDo: ["Climb and explore the Valley of Goblins", "Hike the Goblin's Lair", "Camp in a yurt"],
+    UserReviews: [["The Nguyen family, Sandy", 5, "Our kids called it a giant playground. Bring hats; no shade."]] },
+  antelope: { ThingsToDo: ["See the bison herd", "Float in the Great Salt Lake", "Visit Fielding Garr Ranch"],
+    UserReviews: [["Hannah, Australia", 4, "So close to the city and bison everywhere! Bugs were bad in early June."]] },
+  bearlake: { ThingsToDo: ["Rent a kayak or paddleboard", "Relax at Rendezvous Beach", "Get a raspberry shake in Garden City"],
+    UserReviews: [["Sam, Layton", 5, "That water color is unreal. Book camping early."]] },
+  snowbird: { ThingsToDo: ["Ride the aerial tram to Hidden Peak", "Ski powder in Mineral Basin", "Summer: Oktoberfest and alpine slide"],
+    UserReviews: [["Felix, Switzerland", 5, "The snow is as light as everyone says. Beat the canyon traffic by leaving early."]] },
+  parkcity: { ThingsToDo: ["Ski 300+ trails", "Walk historic Main Street", "Summer: Alpine Coaster and mountain biking"],
+    UserReviews: [["Olivia, Brazil", 4, "Huge mountain and fun town. Expensive, but the free buses helped."]] },
+  brianhead: { ThingsToDo: ["Ski family-friendly runs", "Visit Cedar Breaks nearby", "Summer: lift-served mountain biking"],
+    UserReviews: [["Chris, Cedar City", 4, "Smaller and relaxed. Great for teaching kids to ski."]] },
+  sundance: { ThingsToDo: ["Ski uncrowded runs", "Hike to Stewart Falls", "Ride the zipline"],
+    UserReviews: [["Ana, Provo", 5, "Feels like a hidden gem. The fall colors are stunning."]] },
+  nac: { ThingsToDo: ["Adaptive ski or snowboard lesson", "Adaptive horseback riding", "Indoor climbing wall"],
+    UserReviews: [["The Ortiz family, Murray", 5, "Staff matched our son with the perfect instructor. First time he skied with his siblings."]] },
+  saltflats: { ThingsToDo: ["Take perspective photos", "Watch sunset over the salt", "See Speed Week in August"],
+    UserReviews: [["Yuki, Japan", 4, "So strange and beautiful. Not much to do, but worth the stop on I-80."]] },
+  timpcave: { ThingsToDo: ["Take the ranger-guided cave tour", "Drive the Alpine Loop", "Picnic along American Fork Creek"],
+    UserReviews: [["Jen, Lehi", 4, "The hike up is steep for little legs. The cave is worth it."]] },
+  watchman: { ThingsToDo: ["Walk to the shuttle stop", "Bike the Pa'rus Trail", "Stargaze from your site"],
+    UserReviews: [["Mark, Colorado", 4, "Best location in Zion. Book the day reservations open."]] },
+  uintas: { ThingsToDo: ["Fish at Mirror Lake", "Hike to Bald Mountain", "Picnic by Provo River Falls"],
+    UserReviews: [["Grace, Heber", 5, "Cool, green and gorgeous when the valley is 100°F."]] },
+  kodachrome: { ThingsToDo: ["Hike the Panorama Trail", "Walk the short Nature Trail", "Use it as a quiet base for Bryce"],
+    UserReviews: [["Ivan, Canada", 5, "Quiet campground and colorful rocks. A great Bryce alternative."]] },
+  naturalbridges: { ThingsToDo: ["Drive Bridge View Drive", "Hike down to Sipapu Bridge", "Join a night sky program"],
+    UserReviews: [["Elena, Italy", 5, "Remote and silent. The Milky Way was incredible."]] }
+};
+PLACES.forEach(p => Object.assign(p, EXTRAS[p.FacilityID] || { ThingsToDo: [], UserReviews: [] }));
+
+</script>
+<script>
+/* ---------- Setup ---------- */
+const CITIES = [
+  ["Salt Lake City, UT", 40.7608, -111.8910], ["Provo, UT", 40.2338, -111.6585],
+  ["Ogden, UT", 41.2230, -111.9738], ["Park City, UT", 40.6461, -111.4980],
+  ["St. George, UT", 37.0965, -113.5684], ["Moab, UT", 38.5733, -109.5498],
+  ["Cedar City, UT", 37.6775, -113.0619], ["Logan, UT", 41.7370, -111.8338],
+  ["Las Vegas, NV (fly-in)", 36.1699, -115.1398]
+];
+const ACTIVITIES = ["Hiking", "Camping", "Skiing", "Biking", "Water", "Scenic Drive", "Stargazing", "Wildlife"];
+const TYPES = [...new Set(PLACES.map(p => p.Type))];
+const ACCESS = {
+  wheelchair: "Wheelchair accessible", stroller: "Stroller friendly", paved: "Paved trail available",
+  restrooms: "Accessible restrooms", quiet: "Quieter, low-sensory option", shade: "Shade available",
+  medical: "Hospital within about 30 min"
+};
+const TYPE_STYLE = {
+  "National Park":       { bg: "linear-gradient(135deg,#2F5233,#1F3B24)", icon: "🏜️" },
+  "State Park":          { bg: "linear-gradient(135deg,#4A6B45,#2F4A2B)", icon: "🌄" },
+  "National Monument":   { bg: "linear-gradient(135deg,#7A8B5C,#55663D)", icon: "🪨" },
+  "Ski Resort":          { bg: "linear-gradient(135deg,#3E6B66,#24443F)", icon: "🎿" },
+  "Campground":          { bg: "linear-gradient(135deg,#5C7A4A,#3B5230)", icon: "🏕️" },
+  "Scenic Area":         { bg: "linear-gradient(135deg,#8C9A6B,#5E6B44)", icon: "🛣️" },
+  "Adaptive Recreation": { bg: "linear-gradient(135deg,#2E5E4E,#1C3D33)", icon: "♿" }
+};
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+const state = {
+  loc: { name: "Salt Lake City, UT", lat: 40.7608, lon: -111.8910 },
+  start: "", end: "", units: "F", sort: "score", compare: [], view: "list", favs: loadFavs(),
+  f: freshFilters()
+};
+function loadFavs() {
+  try { return new Set(JSON.parse(localStorage.getItem("uw-favs") || "[]")); } catch (e) { return new Set(); }
+}
+function saveFavs() {
+  try { localStorage.setItem("uw-favs", JSON.stringify([...state.favs])); } catch (e) { /* storage blocked; favorites last for this visit */ }
+}
+function freshFilters() {
+  return { favOnly: false, maxMiles: 0, types: new Set(), acts: new Set(), minRating: 0, goodDates: false, maxDrive: 0,
+           cost: new Set(), noRes: false, access: new Set(), dog: false, family: false, lowCrowd: false };
+}
+const $ = id => document.getElementById(id);
+const byId = id => PLACES.find(p => p.FacilityID === id);
+const tog = (s, v) => s.has(v) ? s.delete(v) : s.add(v);
+const setOn = (s, v, on) => on ? s.add(v) : s.delete(v);
+
+const CHIPS = [
+  { label: () => `♥ Saved (${state.favs.size})`, on: () => state.f.favOnly, go: () => state.f.favOnly = !state.f.favOnly },
+  { label: "🥾 Hiking",     on: () => state.f.acts.has("Hiking"),     go: () => tog(state.f.acts, "Hiking") },
+  { label: "⛷️ Skiing",     on: () => state.f.acts.has("Skiing"),     go: () => tog(state.f.acts, "Skiing") },
+  { label: "🏕️ Camping",    on: () => state.f.acts.has("Camping"),    go: () => tog(state.f.acts, "Camping") },
+  { label: "♿ Accessible", on: () => state.f.access.has("wheelchair"), go: () => tog(state.f.access, "wheelchair") },
+  { label: "🤫 Low crowds", on: () => state.f.lowCrowd,               go: () => state.f.lowCrowd = !state.f.lowCrowd },
+  { label: "👨‍👩‍👧 Family",     on: () => state.f.family,                 go: () => state.f.family = !state.f.family },
+  { label: "💧 Water",      on: () => state.f.acts.has("Water"),      go: () => tog(state.f.acts, "Water") },
+  { label: "✨ Stargazing", on: () => state.f.acts.has("Stargazing"), go: () => tog(state.f.acts, "Stargazing") },
+  { label: "🆓 Free",       on: () => state.f.cost.has(0),            go: () => tog(state.f.cost, 0) }
+];
+
+/* ---------- Dates ---------- */
+const pad = n => String(n).padStart(2, "0");
+const isoLocal = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parse = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+function nextDate(month, day) {
+  const t = new Date(); const d = new Date(t.getFullYear(), month, day);
+  if (d < t) d.setFullYear(t.getFullYear() + 1);
+  return d;
+}
+function tripMonths() {
+  let a = parse(state.start), b = parse(state.end);
+  if (b < a) [a, b] = [b, a];
+  const out = [];
+  for (let d = new Date(a); d <= b && out.length < 90; d = addDays(d, 1)) out.push(d.getMonth());
+  return out;
+}
+function fmtRange() {
+  const a = parse(state.start), b = parse(state.end);
+  const f = d => `${MONTHS[d.getMonth()]} ${d.getDate()}`;
+  return a.getTime() === b.getTime() ? f(a) : `${f(a)} to ${f(b)}`;
+}
+
+/* ---------- Calculations ---------- */
+const avgBy = (arr, months) => months.reduce((s, m) => s + arr[m], 0) / months.length;
+function miles(lat1, lon1, lat2, lon2) {
+  const R = 3958.8, r = x => x * Math.PI / 180;
+  const dLat = r(lat2 - lat1), dLon = r(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(r(lat1)) * Math.cos(r(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+function compute(p) {
+  const months = tripMonths();
+  const roadMiles = miles(state.loc.lat, state.loc.lon, p.FacilityLatitude, p.FacilityLongitude) * 1.3;
+  return {
+    score: Math.round(avgBy(p.Season, months)),
+    crowd: avgBy(p.Crowds, months),
+    highF: Math.round(avgBy(p.HighsF, months)),
+    miles: roadMiles,
+    hrs: roadMiles / 65
+  };
+}
+const scoreLabel = s => s >= 85 ? ["Great", "great"] : s >= 70 ? ["Good", "good"] : s >= 50 ? ["Fair", "fair"] : ["Off-season", "off"];
+const crowdLabel = c => c < 1.5 ? "Low" : c < 2.5 ? "Moderate" : "Busy";
+const temp = f => state.units === "F" ? `${f}°F` : `${Math.round((f - 32) * 5 / 9)}°C`;
+const dist = mi => state.units === "F" ? `${Math.round(mi)} mi` : `${Math.round(mi * 1.609)} km`;
+const elev = ft => state.units === "F" ? `${ft.toLocaleString()} ft` : `${Math.round(ft * 0.3048).toLocaleString()} m`;
+function driveTxt(h) {
+  if (h < 0.25) return "Nearby";
+  let H = Math.floor(h), M = Math.round((h - H) * 12) * 5;
+  if (M === 60) { H++; M = 0; }
+  return H ? `${H}h${M ? " " + M + "m" : ""}` : `${M}m`;
+}
+const yn = b => b ? "✅ Yes" : "➖ No";
+function bestMonths(p) {
+  const m = p.Season.map((s, i) => [s, i]).filter(([s]) => s >= 85).map(([, i]) => MONTHS[i]);
+  return m.length ? `Best months: ${m.join(", ")}.` : "";
+}
+
+/* ---------- Filtering ---------- */
+function passes(p, c) {
+  const f = state.f;
+  if (f.favOnly && !state.favs.has(p.FacilityID)) return false;
+  if (f.types.size && !f.types.has(p.Type)) return false;
+  if (f.acts.size && ![...f.acts].some(a => p.Activities.includes(a))) return false;
+  if (p.Rating < f.minRating) return false;
+  if (f.goodDates && c.score < 70) return false;
+  if (f.maxDrive && c.hrs > f.maxDrive) return false;
+  if (f.maxMiles && c.miles > f.maxMiles) return false;
+  if (f.cost.size && !f.cost.has(p.CostTier)) return false;
+  if (f.noRes && p.Reservation) return false;
+  for (const k of f.access) if (!p.Access[k]) return false;
+  if (f.dog && !p.DogFriendly) return false;
+  if (f.family && !p.FamilyFriendly) return false;
+  if (f.lowCrowd && c.crowd >= 2) return false;
+  return true;
+}
+function activeCount() {
+  const f = state.f;
+  return f.types.size + f.acts.size + f.cost.size + f.access.size +
+    [f.minRating, f.goodDates, f.maxDrive, f.noRes, f.dog, f.family, f.lowCrowd].filter(Boolean).length;
+}
+const SORTS = {
+  score:  (a, b) => b.c.score - a.c.score || b.p.Rating - a.p.Rating,
+  drive:  (a, b) => a.c.hrs - b.c.hrs,
+  rating: (a, b) => b.p.Rating - a.p.Rating || b.c.score - a.c.score,
+  crowds: (a, b) => a.c.crowd - b.c.crowd || b.c.score - a.c.score
+};
+
+
+/* ---------- Banner scenes (drawn SVG landscapes that fill the banner) ---------- */
+const pine = (x, y, h, c = "#2F5233") => `<path d="M${x} ${y - h} L${x + h * 0.36} ${y} L${x - h * 0.36} ${y}Z" fill="${c}"/>`;
+const spire = (x, w, top, c) => `<path d="M${x} 150 V${top} a${w / 2} ${w / 2} 0 0 1 ${w} 0 V150Z" fill="${c}"/>`;
+const SKY = `<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D7E3CF"/><stop offset="1" stop-color="#F3EEDF"/></linearGradient></defs><rect width="400" height="150" fill="url(#sky)"/>`;
+const SCENES = {
+  "National Park":
+    `<circle cx="320" cy="38" r="16" fill="#F7F1E1"/>
+     <path d="M0 112 L36 112 L46 72 L112 72 L122 112 L168 112 L180 52 L252 52 L264 112 L308 112 L316 84 L372 84 L380 112 L400 112 V150 H0Z" fill="#C7B48F"/>
+     <path d="M180 52 L252 52 L256 70 L176 70Z" fill="#B3A07A"/>
+     <path d="M0 124 Q100 110 200 121 T400 117 V150 H0Z" fill="#6E8B5A"/>
+     <path d="M0 138 Q120 127 240 135 T400 131 V150 H0Z" fill="#3B5230"/>`,
+  "State Park":
+    `<path d="M0 108 Q80 88 160 100 T320 94 T400 98 V150 H0Z" fill="#D8C9A8"/>
+     ${spire(30, 16, 92, "#BCA781")}${spire(52, 13, 74, "#A8936D")}${spire(70, 18, 98, "#BCA781")}
+     ${spire(250, 15, 82, "#A8936D")}${spire(270, 12, 102, "#BCA781")}${spire(288, 20, 68, "#B09B74")}${spire(316, 13, 94, "#A8936D")}
+     <path d="M0 132 Q100 122 200 130 T400 126 V150 H0Z" fill="#5C7A4A"/>
+     ${pine(140, 140, 22)}${pine(160, 142, 16)}${pine(370, 138, 20)}`,
+  "National Monument":
+    `<path d="M0 118 Q120 104 220 114 T400 108 V150 H0Z" fill="#D8C9A8"/>
+     <path d="M140 150 V92 Q140 38 205 38 Q270 38 270 92 V150 H248 V98 Q248 62 205 62 Q162 62 162 98 V150Z" fill="#B9A47E"/>
+     <path d="M140 92 Q140 38 205 38 Q270 38 270 92 L262 92 Q258 48 205 48 Q152 48 148 92Z" fill="#A8936D"/>
+     <path d="M0 136 Q120 126 240 134 T400 130 V150 H0Z" fill="#5C7A4A"/>`,
+  "Ski Resort":
+    `<path d="M0 150 L90 48 L140 94 L212 22 L292 100 L342 58 L400 108 V150Z" fill="#7F978C"/>
+     <path d="M212 22 L238 50 L224 46 L212 57 L199 46 L186 50Z" fill="#FFFFFF"/>
+     <path d="M90 48 L108 68 L97 64 L88 72 L80 63 L73 68Z" fill="#FFFFFF"/>
+     <path d="M342 58 L356 72 L347 70 L340 76 L333 70 L328 72Z" fill="#FFFFFF"/>
+     <path d="M0 128 Q200 102 400 126 V150 H0Z" fill="#FFFFFF"/>
+     ${pine(40, 132, 30)}${pine(62, 130, 22)}${pine(330, 132, 28)}${pine(354, 134, 20)}${pine(300, 134, 18)}`,
+  "Campground":
+    `<path d="M0 110 Q100 92 200 104 T400 100 V150 H0Z" fill="#8FA67E"/>
+     ${pine(30, 118, 50, "#3B5230")}${pine(64, 120, 38, "#2F5233")}${pine(340, 116, 52, "#3B5230")}${pine(372, 120, 40, "#2F5233")}${pine(310, 122, 30, "#2F5233")}
+     <path d="M0 128 Q200 116 400 128 V150 H0Z" fill="#5C7A4A"/>
+     <path d="M168 138 L205 92 L242 138Z" fill="#E8DCC0"/><path d="M205 92 L196 138 H214Z" fill="#8C7B55"/>
+     <circle cx="120" cy="40" r="3" fill="#FFFFFF" opacity=".8"/><circle cx="260" cy="28" r="2" fill="#FFFFFF" opacity=".8"/>`,
+  "Scenic Area":
+    `<path d="M0 100 Q90 70 180 92 T400 84 V150 H0Z" fill="#9BAE86"/>
+     <path d="M0 118 Q120 98 240 112 T400 106 V150 H0Z" fill="#6E8B5A"/>
+     <path d="M0 150 C110 128 170 140 236 122 S360 106 400 110" stroke="#E8DCC0" stroke-width="9" fill="none"/>
+     <path d="M0 150 C110 128 170 140 236 122 S360 106 400 110" stroke="#F7F1E1" stroke-width="1.5" stroke-dasharray="6 6" fill="none"/>
+     ${pine(70, 124, 22)}${pine(330, 116, 24)}`,
+  "Adaptive Recreation":
+    `<circle cx="300" cy="40" r="15" fill="#F7F1E1"/>
+     <path d="M0 150 L80 70 L130 104 L200 50 L270 104 L320 80 L400 120 V150Z" fill="#7F978C"/>
+     <path d="M200 50 L220 70 L208 67 L200 75 L191 67 L182 70Z" fill="#FFFFFF"/>
+     <path d="M0 124 Q200 112 400 124 V136 Q200 126 0 136Z" fill="#8FB3A6"/>
+     <path d="M0 136 Q200 126 400 136 V150 H0Z" fill="#5C7A4A"/>
+     ${pine(50, 132, 24)}${pine(360, 132, 26)}`
+};
+const sceneCache = {};
+function sceneURL(p) {
+  const flip = [...p.FacilityID].reduce((s, ch) => s + ch.charCodeAt(0), 0) % 2 === 1;
+  const key = p.Type + (flip ? "-f" : "");
+  if (!sceneCache[key]) {
+    const body = SCENES[p.Type] || SCENES["Scenic Area"];
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 150" preserveAspectRatio="xMidYMid slice">${SKY}${flip ? `<g transform="translate(400 0) scale(-1 1)">${body}</g>` : body}</svg>`;
+    sceneCache[key] = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  }
+  return sceneCache[key];
+}
+
+/* ---------- Rendering ---------- */
+function cardHTML({ p, c }) {
+  const st = TYPE_STYLE[p.Type];
+  const [lab, cls] = scoreLabel(c.score);
+  const inCmp = state.compare.includes(p.FacilityID);
+  const b = [];
+  if (c.crowd >= 2.5) b.push(`<span class="badge warn">🔥 Peak crowds</span>`);
+  if (p.Reservation) b.push(`<span class="badge warn">📅 Reservation needed</span>`);
+  if (p.Access.wheelchair) b.push(`<span class="badge">♿ Wheelchair</span>`);
+  if (p.Access.stroller) b.push(`<span class="badge">👶 Stroller</span>`);
+  if (p.Access.quiet) b.push(`<span class="badge">🤫 Quieter</span>`);
+  if (p.DogFriendly) b.push(`<span class="badge plain">🐕 Dogs OK</span>`);
+  return `<article class="card">
+    <button class="banner" style="background-image:url('${sceneURL(p)}')" data-detail="${p.FacilityID}" aria-label="Details for ${p.FacilityName}, score ${c.score}, ${lab}">
+      <span class="type" aria-hidden="true">${p.Type}</span>
+      <span class="score s-${cls}" aria-hidden="true"><b>${c.score}</b><small>${lab}</small></span>
+    </button>
+    <div class="cbody">
+      <h2>${p.FacilityName}</h2>
+      <div class="meta">
+        <span>⭐ ${p.Rating.toFixed(1)} (${p.Reviews.toLocaleString()})</span>
+        <span>🚗 ${driveTxt(c.hrs)}</span>
+        <span>🌡️ Highs ${temp(c.highF)}</span>
+        <span>👥 ${crowdLabel(c.crowd)} crowds</span>
+      </div>
+      <div class="badges">${b.slice(0, 4).join("")}</div>
+      <div class="cactions">
+        <button class="btn-fav" data-fav="${p.FacilityID}"></button>
+        <button class="btn-details" data-detail="${p.FacilityID}">Details</button>
+        <button class="btn-compare" data-compare="${p.FacilityID}" aria-pressed="${inCmp}">${inCmp ? "✓ Comparing" : "+ Compare"}</button>
+      </div>
+    </div>
+  </article>`;
+}
+
+function renderMap(rows) {
+  const X = lon => (lon + 114.05) * 100, Y = lat => (42 - lat) * 100;
+  const color = s => ({ great: "#1E5B2E", good: "#4D6B2A", fair: "#8A7A3A", off: "#6B7280" })[scoreLabel(s)[1]];
+  const pins = rows.map(({ p, c }) => `
+    <g class="pin" data-detail="${p.FacilityID}" tabindex="0" role="button" aria-label="${p.FacilityName}, score ${c.score}">
+      <title>${p.FacilityName} (${c.score})</title>
+      <circle cx="${X(p.FacilityLongitude)}" cy="${Y(p.FacilityLatitude)}" r="14" fill="${color(c.score)}" stroke="#fff" stroke-width="3"/>
+      <text x="${X(p.FacilityLongitude)}" y="${Y(p.FacilityLatitude) + 4}" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">${c.score}</text>
+    </g>`).join("");
+  const lx = X(state.loc.lon), ly = Y(state.loc.lat);
+  const me = (lx >= 0 && lx <= 501 && ly >= 0 && ly <= 500)
+    ? `<g aria-hidden="true">${state.f.maxMiles ? `<ellipse cx="${lx}" cy="${ly}" rx="${(state.f.maxMiles / 1.3) / (69 * 0.777) * 100}" ry="${(state.f.maxMiles / 1.3) / 69 * 100}" fill="#3B6E4A" fill-opacity=".08" stroke="#3B6E4A" stroke-width="2" stroke-dasharray="6 5"/>` : ""}<circle cx="${lx}" cy="${ly}" r="9" fill="#2563EB" stroke="#fff" stroke-width="3"/><text x="${lx + 14}" y="${ly + 4}" font-size="13" font-weight="700" fill="#1E3A8A">You</text></g>` : "";
+  $("mapview").innerHTML = `
+    <svg viewBox="-20 -20 541 540" role="img" aria-label="Map of Utah showing ${rows.length} places">
+      <polygon points="0,0 300,0 300,100 501,100 501,500 0,500" fill="#EFE8DA" stroke="#4A6B45" stroke-width="3" stroke-linejoin="round"/>
+      <text x="40" y="470" font-size="16" fill="#2F5233" opacity=".6" font-weight="700">UTAH</text>
+      ${me}${pins}
+    </svg>
+    <p class="note">Prototype map: pins are colored by score for your dates. The real Google Maps view drops in here. Tap a pin for details.</p>`;
+}
+
+function render() {
+  const rows = PLACES.map(p => ({ p, c: compute(p) })).filter(r => passes(r.p, r.c));
+  rows.sort(SORTS[state.sort]);
+  $("count").textContent = `${rows.length} ${rows.length === 1 ? "place" : "places"} for ${fmtRange()}${state.f.maxMiles ? `, within ${dist(state.f.maxMiles)} of` : ", from"} ${state.loc.name}`;
+  renderRadius();
+  $("results").innerHTML = rows.length ? rows.map(cardHTML).join("")
+    : state.f.favOnly && !state.favs.size
+      ? `<div class="empty"><p><b>No favorites yet.</b></p><p>Tap ♡ on any place to save it here.</p></div>`
+      : `<div class="empty"><p><b>No matches.</b></p><p>Try removing a filter or changing your dates.</p></div>`;
+  if (state.view === "map") renderMap(rows);
+  $("results").hidden = state.view === "map";
+  $("mapview").hidden = state.view !== "map";
+  $("fab").textContent = state.view === "map" ? "☰ List" : "🗺️ Map";
+
+  $("chips").innerHTML = CHIPS.map((ch, i) => `<button class="chip" data-chip="${i}" aria-pressed="${ch.on()}">${typeof ch.label === "function" ? ch.label() : ch.label}</button>`).join("");
+  const n = activeCount();
+  $("openFilters").textContent = n ? `⚙︎ Filters (${n})` : "⚙︎ Filters";
+  $("showRes").textContent = `Show ${rows.length} results`;
+  syncFilterInputs();
+  renderTray();
+  syncCompareButtons();
+  syncFavButtons();
+}
+
+const RADII = [0, 25, 50, 100, 200, 300];
+function renderRadius() {
+  const v = state.f.maxMiles;
+  $("radius").innerHTML = RADII.map(r => `<option value="${r}"${r === v ? " selected" : ""}>${r ? dist(r) + " (driving)" : "Any distance"}</option>`).join("");
+}
+
+/* ---------- Filter sheet ---------- */
+function buildFilters() {
+  const cb = (g, v, l) => `<label class="opt"><input type="checkbox" data-g="${g}" value="${v}"> ${l}</label>`;
+  const rd = (g, v, l) => `<label class="opt"><input type="radio" name="${g}" data-g="${g}" value="${v}"> ${l}</label>`;
+  $("fbody").innerHTML = `
+    <fieldset><legend>Good for your dates</legend>${cb("good", 1, "Only Good or Great for my dates")}</fieldset>
+    <fieldset><legend>Type</legend>${TYPES.map(t => cb("type", t, t)).join("")}</fieldset>
+    <fieldset><legend>Activities</legend>${ACTIVITIES.map(a => cb("act", a, a)).join("")}</fieldset>
+    <fieldset><legend>♿ Accessibility</legend>${Object.entries(ACCESS).map(([k, v]) => cb("access", k, v)).join("")}
+      <p class="fnote">Based on park information; confirm with the park before you go.</p></fieldset>
+    <fieldset><legend>Rating</legend>${rd("rating", 0, "Any")}${rd("rating", 4.5, "4.5+ stars")}${rd("rating", 4.7, "4.7+ stars")}</fieldset>
+    <fieldset><legend>Drive time</legend>${rd("drive", 0, "Any")}${rd("drive", 1, "Under 1 hour")}${rd("drive", 2, "Under 2 hours")}${rd("drive", 4, "Under 4 hours")}</fieldset>
+    <fieldset><legend>Cost</legend>${cb("cost", 0, "Free")}${cb("cost", 1, "Under $20")}${cb("cost", 2, "$20+")}</fieldset>
+    <fieldset><legend>Reservations</legend>${cb("nores", 1, "No reservation needed")}</fieldset>
+    <fieldset><legend>Extras</legend>${cb("extra", "family", "Family friendly")}${cb("extra", "dog", "Dog friendly")}${cb("extra", "lowCrowd", "Low crowds for my dates")}</fieldset>`;
+  $("fbody").addEventListener("change", e => {
+    const i = e.target, g = i.dataset.g, f = state.f;
+    if (!g) return;
+    switch (g) {
+      case "type": setOn(f.types, i.value, i.checked); break;
+      case "act": setOn(f.acts, i.value, i.checked); break;
+      case "access": setOn(f.access, i.value, i.checked); break;
+      case "cost": setOn(f.cost, Number(i.value), i.checked); break;
+      case "rating": f.minRating = Number(i.value); break;
+      case "drive": f.maxDrive = Number(i.value); break;
+      case "good": f.goodDates = i.checked; break;
+      case "nores": f.noRes = i.checked; break;
+      case "extra": f[i.value] = i.checked; break;
+    }
+    render();
+  });
+}
+function syncFilterInputs() {
+  const f = state.f;
+  $("fbody").querySelectorAll("input").forEach(i => {
+    const v = i.value;
+    i.checked = ({
+      type: () => f.types.has(v), act: () => f.acts.has(v), access: () => f.access.has(v),
+      cost: () => f.cost.has(Number(v)), rating: () => f.minRating === Number(v),
+      drive: () => f.maxDrive === Number(v), good: () => f.goodDates, nores: () => f.noRes,
+      extra: () => !!f[v]
+    })[i.dataset.g]();
+  });
+}
+function openSheet() { $("filters").classList.add("open"); $("backdrop").classList.add("show"); $("fclose").focus(); }
+function closeSheet() { $("filters").classList.remove("open"); $("backdrop").classList.remove("show"); }
+
+/* ---------- Detail ---------- */
+function openDetail(id) {
+  const p = byId(id), c = compute(p), [lab] = scoreLabel(c.score), st = TYPE_STYLE[p.Type];
+  const acc = Object.entries(ACCESS).map(([k, v]) => `<li>${p.Access[k] ? "✅" : "➖"} ${v}</li>`).join("");
+  const d = $("detail");
+  d.innerHTML = `
+    <div class="dhead"><h2 id="detailTitle">${p.FacilityName}</h2><span style="display:flex;gap:4px"><button class="btn-fav" data-fav="${p.FacilityID}"></button><button class="xbtn" data-close aria-label="Close">✕</button></span></div>
+    <div class="banner" style="background-image:url('${sceneURL(p)}');height:140px" aria-hidden="true"><span class="type">${p.Type}</span></div>
+    <div class="dbody">
+      <p>${p.FacilityDescription}</p>
+      <div class="callout"><b>${c.score}/100: ${lab} for ${fmtRange()}.</b> Average highs around ${temp(c.highF)}; ${crowdLabel(c.crowd).toLowerCase()} crowds. ${bestMonths(p)}</div>
+      <div class="facts">
+        <div class="fact"><span>Drive</span>${driveTxt(c.hrs)} (${dist(c.miles)})</div>
+        <div class="fact"><span>Rating</span>⭐ ${p.Rating.toFixed(1)} (${p.Reviews.toLocaleString()})</div>
+        <div class="fact"><span>Cost</span>${p.Cost}</div>
+        <div class="fact"><span>Elevation</span>${elev(p.ElevationFt)}</div>
+        <div class="fact"><span>Reservation</span>${p.Reservation ? "📅 Needed" : "Not needed"}</div>
+        <div class="fact"><span>Dogs</span>${p.DogFriendly ? "Allowed (rules vary)" : "Very limited"}</div>
+      </div>
+      ${c.crowd >= 2.5 ? `<div class="callout warn"><b>🔥 Peak season for your dates.</b> Parking often fills by mid-morning. Arrive early, or try: ${p.QuietTime}</div>` : ""}
+      <h3>📆 When to go</h3>
+      ${monthStrip(p)}
+      <h3>🎯 Things to do</h3>
+      <ul class="list">${p.ThingsToDo.map(t => `<li>${t}</li>`).join("")}</ul>
+      <div class="badges">${p.Activities.map(a => `<span class="badge plain">${a}</span>`).join("")}</div>
+      <h3>👀 What to expect</h3>
+      <ul class="list">${expectList(p, c).map(t => `<li>${t}</li>`).join("")}</ul>
+      <h3>🎒 Packing list for your dates</h3>
+      <ul class="checklist">${packingList(p, c).map(t => `<li>${t}</li>`).join("")}</ul>
+      <h3>♿ Access details</h3>
+      <p>${p.AccessDetails}</p>
+      <ul class="acc">${acc}</ul>
+      <h3>🤫 For a quieter visit</h3>
+      <p>${p.QuietTime}</p>
+      <h3>🌍 First time in Utah?</h3>
+      <p>${p.Tip}</p>
+      <h3>💬 Reviews <small style="font-weight:400;color:var(--muted)">(sample text for the prototype)</small></h3>
+      ${p.UserReviews.map(([who, stars, text]) => `<div class="review"><div class="stars" aria-label="${stars} out of 5 stars">${"★".repeat(stars)}${"☆".repeat(5 - stars)}</div><p>"${text}"</p><div class="who">${who}</div></div>`).join("")}
+      <button class="btn-compare" style="width:100%;margin-top:12px" data-compare="${p.FacilityID}"></button>
+      <p class="disclaimer">Prototype with sample data. Based on park information; confirm with the park before you go.</p>
+    </div>`;
+  syncCompareButtons();
+  syncFavButtons();
+  if (!d.open) d.showModal();
+  d.scrollTop = 0;
+}
+
+function monthRanges(idx) {
+  if (!idx.length) return "";
+  if (idx.length === 12) return "all year";
+  const set = new Set(idx); let start = 0;
+  while (set.has(start)) start++;
+  const out = []; let run = null;
+  for (let k = 1; k <= 12; k++) {
+    const m = (start + k) % 12;
+    if (set.has(m)) { if (!run) run = [m, m]; else run[1] = m; }
+    else if (run) { out.push(run); run = null; }
+  }
+  return out.map(([a, b]) => a === b ? MONTHS[a] : `${MONTHS[a]} to ${MONTHS[b]}`).join(", ");
+}
+const busyMonths = p => monthRanges(p.Crowds.map((v, i) => v === 3 ? i : -1).filter(i => i >= 0));
+function monthStrip(p) {
+  const trip = new Set(tripMonths());
+  const cells = MONTHS.map((m, i) => {
+    const cls = scoreLabel(p.Season[i])[1];
+    return `<div class="mcell ${trip.has(i) ? "trip" : ""}" title="${m}: score ${p.Season[i]}, ${crowdLabel(p.Crowds[i]).toLowerCase()} crowds">
+      <div class="mbar c-${cls}" style="height:${Math.max(4, Math.round(p.Season[i] * 0.55))}px"></div>
+      <div class="mcrowd">${"•".repeat(p.Crowds[i])}</div><div class="mname">${m[0]}</div></div>`;
+  }).join("");
+  const busy = busyMonths(p);
+  return `<div class="strip" role="img" aria-label="Season score and crowds by month. ${bestMonths(p)} ${busy ? "Busiest: " + busy + "." : ""}">${cells}</div>
+    <p class="fnote">Bar = how good that month is. Brown dots = crowds (more dots, busier). Outlined = your trip.${busy ? ` <b>Busiest: ${busy}.</b>` : ""}</p>`;
+}
+function expectList(p, c) {
+  const busy = busyMonths(p);
+  const L = [`Weather: average highs near ${temp(c.highF)} for your dates.`];
+  L.push(`Crowds: ${crowdLabel(c.crowd).toLowerCase()} for your dates.${busy ? ` Busiest months: ${busy}.` : ""}`);
+  L.push(`Elevation: ${elev(p.ElevationFt)}.${p.ElevationFt >= 7000 ? " You may feel short of breath; take it slow and drink extra water." : ""}`);
+  if (p.ReservationNote) L.push(`Reservations: ${p.ReservationNote}`);
+  L.push(`Getting there: about ${driveTxt(c.hrs)} (${dist(c.miles)}) from ${state.loc.name}.`);
+  if (c.score < 50) L.push("Off-season for your dates: some roads, tours or services may be closed.");
+  return L;
+}
+function packingList(p, c) {
+  const L = ["Refillable water bottle (Utah is very dry)", "Sunscreen, sunglasses and a hat"];
+  if (c.highF >= 85) L.push("Extra water: about 1 gallon (4 L) per person per day", "Light, breathable clothing");
+  else if (c.highF <= 50) L.push("Warm layers, gloves and a warm hat");
+  else L.push("Layers: mornings and evenings get cool");
+  if (p.ElevationFt >= 7000 && c.highF > 50) L.push("A warm jacket for cold nights at elevation");
+  if (p.Activities.includes("Hiking")) L.push("Sturdy shoes with good grip");
+  if (p.Activities.includes("Water") && c.highF >= 70) L.push("Swimsuit, water shoes and a towel");
+  if (p.Activities.includes("Skiing") && c.highF <= 50) L.push("Ski goggles and a waterproof jacket");
+  if (p.Activities.includes("Stargazing")) L.push("Headlamp with a red-light setting for stargazing");
+  if (p.Activities.includes("Camping")) L.push("Camping gear (rentals in nearby towns)");
+  if (!p.Access.medical) L.push("First-aid kit and medications (services are far away)");
+  L.push("Offline maps downloaded (cell service is spotty)");
+  return L;
+}
+
+/* ---------- Favorites ---------- */
+function toggleFav(id) {
+  const name = byId(id).FacilityName;
+  if (state.favs.has(id)) { state.favs.delete(id); toast(`Removed ${name} from favorites`); }
+  else { state.favs.add(id); toast(`Saved ${name} to favorites`); }
+  saveFavs();
+  render();
+}
+function syncFavButtons() {
+  document.querySelectorAll("[data-fav]").forEach(b => {
+    const on = state.favs.has(b.dataset.fav);
+    b.setAttribute("aria-pressed", on);
+    b.setAttribute("aria-label", `${on ? "Remove" : "Save"} ${byId(b.dataset.fav).FacilityName} ${on ? "from" : "to"} favorites`);
+    b.textContent = on ? "♥" : "♡";
+  });
+}
+
+/* ---------- Compare ---------- */
+function toggleCompare(id) {
+  const i = state.compare.indexOf(id);
+  if (i >= 0) state.compare.splice(i, 1);
+  else if (state.compare.length >= 3) { toast("You can compare up to 3 places"); return; }
+  else state.compare.push(id);
+  render();
+}
+function syncCompareButtons() {
+  document.querySelectorAll("[data-compare]").forEach(b => {
+    const on = state.compare.includes(b.dataset.compare);
+    b.setAttribute("aria-pressed", on);
+    b.textContent = on ? "✓ Comparing" : "+ Compare";
+  });
+}
+function renderTray() {
+  const n = state.compare.length;
+  $("tray").classList.toggle("show", n > 0);
+  document.body.classList.toggle("has-tray", n > 0);
+  $("trayNames").textContent = state.compare.map(id => byId(id).FacilityName).join(" · ");
+  $("trayGo").disabled = n < 2;
+  $("trayGo").textContent = n < 2 ? "Add 1 more" : `Compare ${n}`;
+}
+function openCompare() {
+  const items = state.compare.map(id => { const p = byId(id); return { p, c: compute(p) }; });
+  const ROWS = [
+    ["Score for your dates", r => `${r.c.score} (${scoreLabel(r.c.score)[0]})`, r => r.c.score, "max"],
+    ["Rating", r => `⭐ ${r.p.Rating.toFixed(1)}`, r => r.p.Rating, "max"],
+    ["Drive", r => `${driveTxt(r.c.hrs)} (${dist(r.c.miles)})`, r => r.c.hrs, "min"],
+    ["Avg high", r => temp(r.c.highF)],
+    ["Crowds", r => crowdLabel(r.c.crowd), r => r.c.crowd, "min"],
+    ["Busiest months", r => busyMonths(r.p) || "Rarely busy"],
+    ["Cost", r => r.p.Cost, r => r.p.CostTier, "min"],
+    ["Reservation", r => r.p.Reservation ? "📅 Needed" : "Not needed"],
+    ["Wheelchair", r => yn(r.p.Access.wheelchair)],
+    ["Stroller", r => yn(r.p.Access.stroller)],
+    ["Quieter option", r => yn(r.p.Access.quiet)],
+    ["Dogs", r => yn(r.p.DogFriendly)],
+    ["Activities", r => r.p.Activities.join(", ")],
+    ["Quieter visit", r => r.p.QuietTime]
+  ];
+  const body = ROWS.map(([label, show, val, dir]) => {
+    let best = null;
+    if (val) {
+      const vals = items.map(val);
+      const target = dir === "max" ? Math.max(...vals) : Math.min(...vals);
+      if (!vals.every(v => v === target)) best = target;
+    }
+    return `<tr><th scope="row">${label}</th>${items.map(r => `<td class="${best !== null && val(r) === best ? "best" : ""}">${show(r)}</td>`).join("")}</tr>`;
+  }).join("");
+  $("compare").innerHTML = `
+    <div class="dhead"><h2 id="compareTitle">Compare for ${fmtRange()}</h2><button class="xbtn" data-close aria-label="Close">✕</button></div>
+    <div class="dbody">
+      <div class="ctable-wrap"><table class="ctable">
+        <thead><tr><th></th>${items.map(r => `<th scope="col">${TYPE_STYLE[r.p.Type].icon} ${r.p.FacilityName}</th>`).join("")}</tr></thead>
+        <tbody>${body}</tbody>
+      </table></div>
+      <p class="disclaimer">✓ marks the best value in a row. Prototype with sample data; confirm details with each park.</p>
+    </div>`;
+  $("compare").showModal();
+}
+
+/* ---------- Location ---------- */
+function setLocationFromText(v) {
+  const key = v.toLowerCase().split(",")[0].replace("(fly-in)", "").trim();
+  const m = CITIES.find(c => c[0].toLowerCase().startsWith(key));
+  if (key && m) {
+    state.loc = { name: m[0], lat: m[1], lon: m[2] };
+    $("loc").value = m[0];
+    $("locNote").textContent = "";
+  } else {
+    $("locNote").textContent = `This prototype knows a few cities. Still using ${state.loc.name}.`;
+  }
+  render();
+}
+function useMyLocation(silent) {
+  if (!navigator.geolocation) { if (!silent) toast("Location isn't available in this browser"); return; }
+  navigator.geolocation.getCurrentPosition(pos => {
+    state.loc = { name: "your location", lat: pos.coords.latitude, lon: pos.coords.longitude };
+    $("loc").value = "📍 My location";
+    $("locNote").textContent = "";
+    render();
+  }, () => { if (!silent) toast(`Couldn't get your location. Using ${state.loc.name}.`); }, { timeout: 8000 });
+}
+
+/* ---------- Misc ---------- */
+let toastTimer;
+function toast(msg) {
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
+}
+
+/* ---------- Events ---------- */
+document.addEventListener("click", e => {
+  const t = e.target;
+  const det = t.closest("[data-detail]"); if (det) { openDetail(det.dataset.detail); return; }
+  const fav = t.closest("[data-fav]"); if (fav) { toggleFav(fav.dataset.fav); return; }
+  const cmp = t.closest("[data-compare]"); if (cmp) { toggleCompare(cmp.dataset.compare); return; }
+  const chip = t.closest("[data-chip]"); if (chip) { CHIPS[chip.dataset.chip].go(); render(); return; }
+  if (t.closest("[data-close]")) { t.closest("dialog").close(); return; }
+  if (t.tagName === "DIALOG") t.close(); // tap outside the dialog panel
+});
+document.addEventListener("keydown", e => {
+  if ((e.key === "Enter" || e.key === " ") && e.target.matches(".pin")) { e.preventDefault(); openDetail(e.target.dataset.detail); }
+  if (e.key === "Escape" && $("filters").classList.contains("open")) closeSheet();
+});
+document.querySelectorAll("[data-units]").forEach(b => b.addEventListener("click", () => {
+  state.units = b.dataset.units;
+  document.querySelectorAll("[data-units]").forEach(x => x.setAttribute("aria-pressed", x === b));
+  render();
+  if ($("detail").open) openDetail($("detail").querySelector("[data-compare]").dataset.compare);
+}));
+document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => {
+  const s = { spring: nextDate(2, 16), summer: nextDate(6, 10), ski: nextDate(1, 8) }[b.dataset.preset];
+  state.start = isoLocal(s); state.end = isoLocal(addDays(s, 4));
+  $("start").value = state.start; $("end").value = state.end;
+  render();
+  toast(`Re-ranked for ${fmtRange()}`);
+}));
+["start", "end"].forEach(id => $(id).addEventListener("change", () => {
+  if (!$("start").value || !$("end").value) return;
+  state.start = $("start").value; state.end = $("end").value;
+  if (parse(state.end) < parse(state.start)) { [state.start, state.end] = [state.end, state.start]; $("start").value = state.start; $("end").value = state.end; }
+  render();
+}));
+$("loc").addEventListener("change", e => setLocationFromText(e.target.value));
+$("useLoc").addEventListener("click", () => useMyLocation(false));
+$("radius").addEventListener("change", e => { state.f.maxMiles = Number(e.target.value); render(); });
+$("sort").addEventListener("change", e => { state.sort = e.target.value; render(); });
+$("openFilters").addEventListener("click", openSheet);
+$("fclose").addEventListener("click", closeSheet);
+$("backdrop").addEventListener("click", closeSheet);
+$("showRes").addEventListener("click", closeSheet);
+$("clearAll").addEventListener("click", () => { state.f = freshFilters(); render(); });
+$("fab").addEventListener("click", () => { state.view = state.view === "map" ? "list" : "map"; render(); window.scrollTo({ top: $("count").offsetTop - 12, behavior: "smooth" }); });
+$("trayGo").addEventListener("click", openCompare);
+$("trayClear").addEventListener("click", () => { state.compare = []; render(); });
+
+/* ---------- Init ---------- */
+$("cities").innerHTML = CITIES.map(c => `<option value="${c[0]}">`).join("");
+const today = new Date();
+state.start = isoLocal(addDays(today, 7));
+state.end = isoLocal(addDays(today, 10));
+$("start").value = state.start; $("end").value = state.end;
+buildFilters();
+render();
+// Default to current location when the browser already has permission (no surprise prompt mid-demo).
+if (navigator.permissions) {
+  navigator.permissions.query({ name: "geolocation" }).then(r => { if (r.state === "granted") useMyLocation(true); }).catch(() => {});
+}
+</script>
+</body>
+</html>

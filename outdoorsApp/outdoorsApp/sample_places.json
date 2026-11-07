@@ -1,0 +1,1892 @@
+[
+  {
+    "FacilityID": "zion",
+    "FacilityName": "Zion National Park",
+    "Type": "National Park",
+    "FacilityDescription": "Towering red and cream cliffs, the Virgin River, and famous hikes like The Narrows and Angels Landing. Utah's most visited park.",
+    "FacilityLatitude": 37.2982,
+    "FacilityLongitude": -113.0263,
+    "ElevationFt": 4000,
+    "Activities": [
+      "Hiking",
+      "Camping",
+      "Biking",
+      "Water",
+      "Scenic Drive",
+      "Wildlife"
+    ],
+    "Rating": 4.9,
+    "Reviews": 48210,
+    "Cost": "$35 per vehicle (7 days)",
+    "CostTier": 2,
+    "Reservation": false,
+    "ReservationNote": "No reservation to enter. Angels Landing needs a permit from a lottery on Recreation.gov.",
+    "Season": [
+      45,
+      50,
+      75,
+      92,
+      90,
+      70,
+      55,
+      58,
+      85,
+      95,
+      70,
+      45
+    ],
+    "Crowds": [
+      1,
+      1,
+      2,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      2,
+      1
+    ],
+    "HighsF": [
+      54,
+      60,
+      68,
+      77,
+      87,
+      97,
+      102,
+      100,
+      92,
+      79,
+      64,
+      54
+    ],
+    "Access": {
+      "wheelchair": true,
+      "stroller": true,
+      "paved": true,
+      "restrooms": true,
+      "quiet": false,
+      "shade": false,
+      "medical": false
+    },
+    "AccessDetails": "Riverside Walk is paved, about 2.2 miles round trip and mostly flat. The Pa'rus Trail is paved. Park shuttles are wheelchair accessible.",
+    "QuietTime": "Weekday mornings before 8am, or December to February.",
+    "Tip": "Summer highs pass 100°F. Hike early, carry at least 1 gallon (4 L) of water per person per day.",
+    "DogFriendly": false,
+    "FamilyFriendly": true,
+    "ThingsToDo": [
+      "Ride the shuttle up Zion Canyon Scenic Drive",
+      "Wade The Narrows (summer and fall)",
+      "Stroll the paved Riverside Walk"
+    ],
+    "UserReviews": [
+      [
+        "Priya, visiting from India",
+        5,
+        "The shuttle made it easy with my parents. Riverside Walk was perfect for my dad's wheelchair."
+      ],
+      [
+        "Jake, Salt Lake City",
+        4,
+        "Unreal views, but go early. Parking was full by 8am in October."
+      ]
+    ]
+  },
+  {
+    "FacilityID": "arches",
+    "FacilityName": "Arches National Park",
+    "Type": "National Park",
+    "FacilityDescription": "Over 2,000 natural stone arches, including Delicate Arch, the arch on Utah's license plate.",
+    "FacilityLatitude": 38.7331,
+    "FacilityLongitude": -109.5925,
+    "ElevationFt": 4800,
+    "Activities": [
+      "Hiking",
+      "Camping",
+      "Scenic Drive",
+      "Stargazing"
+    ],
+    "Rating": 4.8,
+    "Reviews": 39120,
+    "Cost": "$30 per vehicle (7 days)",
+    "CostTier": 2,
+    "Reservation": true,
+    "ReservationNote": "Timed entry reservation needed in peak season (spring through fall). Book on Recreation.gov.",
+    "Season": [
+      45,
+      50,
+      75,
+      92,
+      90,
+      70,
+      55,
+      58,
+      85,
+      95,
+      70,
+      45
+    ],
+    "Crowds": [
+      1,
+      1,
+      2,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      2,
+      1
+    ],
+    "HighsF": [
+      44,
+      52,
+      64,
+      73,
+      83,
+      94,
+      100,
+      97,
+      88,
+      74,
+      57,
+      45
+    ],
+    "Access": {
+      "wheelchair": true,
+      "stroller": true,
+      "paved": true,
+      "restrooms": true,
+      "quiet": false,
+      "shade": false,
+      "medical": true
+    },
+    "AccessDetails": "Park Avenue Viewpoint, the Windows area and the lower Delicate Arch Viewpoint have accessible viewing. Most trails are uneven slickrock.",
+    "QuietTime": "Before 7am or after 5pm; winter is very quiet.",
+    "Tip": "Moab is the nearest town (10 minutes). Very little shade; bring sun protection.",
+    "DogFriendly": false,
+    "FamilyFriendly": true,
+    "ThingsToDo": [
+      "Hike to Delicate Arch at sunset",
+      "Walk the Windows loop",
+      "Drive to Park Avenue viewpoint"
+    ],
+    "UserReviews": [
+      [
+        "Lena, Germany",
+        5,
+        "Book the timed entry ahead! Sunset at Delicate Arch was the highlight of our USA trip."
+      ],
+      [
+        "Marcus, Provo",
+        4,
+        "Hot and no shade in July. Spring was much better."
+      ]
+    ]
+  },
+  {
+    "FacilityID": "bryce",
+    "FacilityName": "Bryce Canyon National Park",
+    "Type": "National Park",
+    "FacilityDescription": "A giant natural amphitheater filled with orange hoodoos (rock spires). Stunning at sunrise and under snow.",
+    "FacilityLatitude": 37.593,
+    "FacilityLongitude": -112.1871,
+    "ElevationFt": 8000,
+    "Activities": [
+      "Hiking",
+      "Camping",
+      "Scenic Drive",
+      "Stargazing",
+      "Skiing"
+    ],
+    "Rating": 4.9,
+    "Reviews": 31540,
+    "Cost": "$35 per vehicle (7 days)",
+    "CostTier": 2,
+    "Reservation": false,
+    "ReservationNote": "",
+    "Season": [
+      55,
+      55,
+      60,
+      70,
+      88,
+      95,
+      90,
+      88,
+      92,
+      80,
+      60,
+      55
+    ],
+    "Crowds": [
+      1,
+      1,
+      2,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      2,
+      1
+    ],
+    "HighsF": [
+      37,
+      40,
+      46,
+      54,
+      64,
+      75,
+      81,
+      78,
+      70,
+      58,
+      45,
+      37
+    ],
+    "Access": {
+      "wheelchair": true,
+      "stroller": true,
+      "paved": true,
+      "restrooms": true,
+      "quiet": false,
+      "shade": false,
+      "medical": false
+    },
+    "AccessDetails": "The Rim Trail between Sunset Point and Sunrise Point is paved and mostly flat (about 1 mile). Viewpoints along the main road are accessible.",
+    "QuietTime": "Sunrise on weekdays; winter for snow and solitude.",
+    "Tip": "Elevation is 8,000 to 9,000 ft (2,400 to 2,700 m). Take it slow, drink water, and pack layers even in summer.",
+    "DogFriendly": false,
+    "FamilyFriendly": true,
+    "ThingsToDo": [
+      "Watch sunrise at Sunrise Point",
+      "Hike Navajo Loop and Queen's Garden",
+      "Join a ranger stargazing program"
+    ],
+    "UserReviews": [
+      [
+        "Aiko, Japan",
+        5,
+        "Snow on the hoodoos in January was magical, and almost nobody there."
+      ],
+      [
+        "Dana, Ogden",
+        5,
+        "The paved rim section worked great for our stroller."
+      ]
+    ]
+  },
+  {
+    "FacilityID": "canyonlands",
+    "FacilityName": "Canyonlands: Island in the Sky",
+    "Type": "National Park",
+    "FacilityDescription": "Huge canyon views from a mesa top, carved by the Colorado and Green Rivers. Home of Mesa Arch at sunrise.",
+    "FacilityLatitude": 38.4597,
+    "FacilityLongitude": -109.821,
+    "ElevationFt": 6000,
+    "Activities": [
+      "Hiking",
+      "Camping",
+      "Biking",
+      "Scenic Drive",
+      "Stargazing"
+    ],
+    "Rating": 4.8,
+    "Reviews": 18760,
+    "Cost": "$30 per vehicle (7 days)",
+    "CostTier": 2,
+    "Reservation": false,
+    "ReservationNote": "No entry reservation. Backcountry camping and White Rim trips need permits.",
+    "Season": [
+      45,
+      50,
+      75,
+      92,
+      90,
+      70,
+      55,
+      58,
+      85,
+      95,
+      70,
+      45
+    ],
+    "Crowds": [
+      1,
+      1,
+      2,
+      2,
+      3,
+      3,
+      3,
+      3,
+      2,
+      2,
+      1,
+      1
+    ],
+    "HighsF": [
+      44,
+      52,
+      64,
+      73,
+      83,
+      94,
+      100,
+      97,
+      88,
+      74,
+      57,
+      45
+    ],
+    "Access": {
+      "wheelchair": true,
+      "stroller": true,
+      "paved": true,
+      "restrooms": true,
+      "quiet": true,
+      "shade": false,
+      "medical": false
+    },
+    "AccessDetails": "The visitor center and several overlooks, including Grand View Point overlook, are accessible. Mesa Arch trail is uneven.",
+    "QuietTime": "Most days outside of sunrise at Mesa Arch.",
+    "Tip": "No food or gas inside the park. Fill up in Moab, about 45 minutes away.",
+    "DogFriendly": false,
+    "FamilyFriendly": true,
+    "ThingsToDo": [
+      "Catch sunrise at Mesa Arch",
+      "Stand at Grand View Point",
+      "Mountain bike the White Rim (permit)"
+    ],
+    "UserReviews": [
+      [
+        "Tom, UK",
+        5,
+        "Felt like the edge of the world. Much quieter than Arches."
+      ]
+    ]
+  },
+  {
+    "FacilityID": "capitolreef",
+    "FacilityName": "Capitol Reef National Park",
+    "Type": "National Park",
+    "FacilityDescription": "A 100-mile wrinkle in the earth, historic Fruita orchards where you can pick fruit in season, and very dark night skies.",
+    "FacilityLatitude": 38.2832,
+    "FacilityLongitude": -111.2471,
+    "ElevationFt": 5500,
+    "Activities": [
+      "Hiking",
+      "Camping",
+      "Scenic Drive",
+      "Stargazing",
+      "Wildlife"
+    ],
+    "Rating": 4.8,
+    "Reviews": 14230,
+    "Cost": "$20 per vehicle (7 days)",
+    "CostTier": 2,
+    "Reservation": false,
+    "ReservationNote": "",
+    "Season": [
+      45,
+      50,
+      75,
+      92,
+      90,
+      70,
+      55,
+      58,
+      85,
+      95,
+      70,
+      45
+    ],
+    "Crowds": [
+      1,
+      1,
+      1,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      1,
+      1
+    ],
+    "HighsF": [
+      42,
+      48,
+      57,
+      65,
+      75,
+      86,
+      91,
+      88,
+      80,
+      66,
+      52,
+      42
+    ],
+    "Access": {
+      "wheelchair": true,
+      "stroller": true,
+      "paved": true,
+      "restrooms": true,
+      "quiet": true,
+      "shade": true,
+      "medical": false
+    },
+    "AccessDetails": "Visitor center, Gifford Homestead and parts of the Fruita orchards are accessible. Shady picnic areas under orchard trees.",
+    "QuietTime": "Most of the year; it is one of the least crowded of Utah's five national parks.",
+    "Tip": "Try a fresh pie from the Gifford Homestead (seasonal). Cell service is limited.",
+    "DogFriendly": false,
+    "FamilyFriendly": true,
+    "ThingsToDo": [
+      "Pick fruit in the Fruita orchards (seasonal)",
+      "Drive the Scenic Drive",
+      "Hike to Hickman Bridge"
+    ],
+    "UserReviews": [
+      [
+        "Rosa, Mexico City",
+        5,
+        "The pie! And the stars at night were the best I've ever seen."
+      ],
+      [
+        "Ben, Logan",
+        4,
+        "Peaceful and uncrowded. Bring snacks; few services."
+      ]
+    ]
+  },
+  {
+    "FacilityID": "snow-canyon",
+    "FacilityName": "Snow Canyon State Park",
+    "Type": "State Park",
+    "FacilityDescription": "Red and white sandstone, lava tubes, and sand dunes just outside St. George. A great pick when Zion is packed.",
+    "FacilityLatitude": 37.2031,
+    "FacilityLongitude": -113.64,
+    "ElevationFt": 3200,
+    "Activities": [
+      "Hiking",
+      "Camping",
+      "Biking",
+      "Wildlife"
+    ],
+    "Rating": 4.7,
+    "Reviews": 6120,
+    "Cost": "About $15 per vehicle",
+    "CostTier": 1,
+    "Reservation": false,
+    "ReservationNote": "",
+    "Season": [
+      70,
+      75,
+      90,
+      92,
+      80,
+      50,
+      35,
+      38,
+      65,
+      90,
+      85,
+      70
+    ],
+    "Crowds": [
+      1,
+      1,
+      2,
+      2,
+      3,
+      3,
+      3,
+      3,
+      2,
+      2,
+      1,
+      1
+    ],
+    "HighsF": [
+      54,
+      60,
+      68,
+      77,
+      87,
+      97,
+      102,
+      100,
+      92,
+      79,
+      64,
+      54
+    ],
+    "Access": {
+      "wheelchair": true,
+      "stroller": true,
+      "paved": true,
+      "restrooms": true,
+      "quiet": true,
+      "shade": false,
+      "medical": true
+    },
+    "AccessDetails": "The paved Whiptail Trail runs about 3 miles along the canyon floor; good for wheelchairs, strollers and bikes.",
+    "QuietTime": "Weekday mornings; winter is mild and pleasant here.",
+    "Tip": "Southern Utah is warmest here. A good winter destination when the north is snowy.",
+    "DogFriendly": true,
+    "FamilyFriendly": true,
+    "ThingsToDo": [
+      "Bike or roll the paved Whiptail Trail",
+      "Explore the lava tubes",
+      "Play on the Sand Dunes"
+    ],
+    "UserReviews": [
+      [
+        "Megan, St. George",
+        5,
+        "Our go-to winter hike spot. The paved trail is great for little kids."
+      ]
+    ]
+  },
+  {
+    "FacilityID": "deadhorse",
+    "FacilityName": "Dead Horse Point State Park",
+    "Type": "State Park",
+    "FacilityDescription": "One of the most photographed overlooks in the West: a gooseneck of the Colorado River 2,000 feet below.",
+    "FacilityLatitude": 38.4708,
+    "FacilityLongitude": -109.7409,
+    "ElevationFt": 5900,
+    "Activities": [
+      "Hiking",
+      "Camping",
+      "Biking",
+      "Stargazing",
+      "Scenic Drive"
+    ],
+    "Rating": 4.8,
+    "Reviews": 7890,
+    "Cost": "About $20 per vehicle",
+    "CostTier": 2,
+    "Reservation": false,
+    "ReservationNote": "Campsites and yurts book up; reserve ahead in spring and fall.",
+    "Season": [
+      45,
+      50,
+      75,
+      92,
+      90,
+      70,
+      55,
+      58,
+      85,
+      95,
+      70,
+      45
+    ],
+    "Crowds": [
+      1,
+      1,
+      2,
+      2,
+      3,
+      3,
+      3,
+      3,
+      2,
+      2,
+      1,
+      1
+    ],
+    "HighsF": [
+      44,
+      52,
+      64,
+      73,
+      83,
+      94,
+      100,
+      97,
+      88,
+      74,
+      57,
+      45
+    ],
+    "Access": {
+      "wheelchair": true,
+      "stroller": true,
+      "paved": true,
+      "restrooms": true,
+      "quiet": true,
+      "shade": false,
+      "medical": false
+    },
+    "AccessDetails": "The main overlook and visitor center are accessible, with paved sections of the rim trail.",
+    "QuietTime": "Weekdays and evenings; stay for the stars (it is a Dark Sky Park).",
+    "Tip": "Combine with Canyonlands: Island in the Sky; they are 15 minutes apart.",
+    "DogFriendly": true,
+    "FamilyFriendly": true,
+    "ThingsToDo": [
+      "See sunset at the main overlook",
+      "Ride the Intrepid bike trails",
+      "Stay for a dark sky program"
+    ],
+    "UserReviews": [
+      [
+        "Carlos, Spain",
+        5,
+        "Easy walk to one of the best views of the trip."
+      ]
+    ]
+  },
+  {
+    "FacilityID": "goblin",
+    "FacilityName": "Goblin Valley State Park",
+    "Type": "State Park",
+    "FacilityDescription": "A valley of thousands of mushroom-shaped rock 'goblins' that kids can climb and explore freely.",
+    "FacilityLatitude": 38.5733,
+    "FacilityLongitude": -110.7071,
+    "ElevationFt": 5000,
+    "Activities": [
+      "Hiking",
+      "Camping",
+      "Stargazing"
+    ],
+    "Rating": 4.7,
+    "Reviews": 5430,
+    "Cost": "About $20 per vehicle",
+    "CostTier": 2,
+    "Reservation": false,
+    "ReservationNote": "",
+    "Season": [
+      45,
+      50,
+      75,
+      92,
+      90,
+      70,
+      55,
+      58,
+      85,
+      95,
+      70,
+      45
+    ],
+    "Crowds": [
+      1,
+      1,
+      1,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      1,
+      1
+    ],
+    "HighsF": [
+      44,
+      52,
+      64,
+      73,
+      83,
+      94,
+      100,
+      97,
+      88,
+      74,
+      57,
+      45
+    ],
+    "Access": {
+      "wheelchair": false,
+      "stroller": false,
+      "paved": false,
+      "restrooms": true,
+      "quiet": true,
+      "shade": false,
+      "medical": false
+    },
+    "AccessDetails": "Overlook near the parking area gives a view of the valley. The valley floor is sand and uneven rock.",
+    "QuietTime": "Weekdays outside spring break.",
+    "Tip": "Remote: the nearest town with services is Hanksville, about 30 minutes away.",
+    "DogFriendly": true,
+    "FamilyFriendly": true,
+    "ThingsToDo": [
+      "Climb and explore the Valley of Goblins",
+      "Hike the Goblin's Lair",
+      "Camp in a yurt"
+    ],
+    "UserReviews": [
+      [
+        "The Nguyen family, Sandy",
+        5,
+        "Our kids called it a giant playground. Bring hats; no shade."
+      ]
+    ]
+  },
+  {
+    "FacilityID": "antelope",
+    "FacilityName": "Antelope Island State Park",
+    "Type": "State Park",
+    "FacilityDescription": "Free-roaming bison, beaches on the Great Salt Lake, and sunsets 40 minutes from Salt Lake City.",
+    "FacilityLatitude": 41.04,
+    "FacilityLongitude": -112.25,
+    "ElevationFt": 4200,
+    "Activities": [
+      "Hiking",
+      "Biking",
+      "Water",
+      "Wildlife",
+      "Scenic Drive",
+      "Camping"
+    ],
+    "Rating": 4.6,
+    "Reviews": 9870,
+    "Cost": "About $15 per vehicle",
+    "CostTier": 1,
+    "Reservation": false,
+    "ReservationNote": "",
+    "Season": [
+      50,
+      55,
+      70,
+      80,
+      70,
+      55,
+      45,
+      50,
+      80,
+      85,
+      65,
+      50
+    ],
+    "Crowds": [
+      1,
+      1,
+      1,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      1,
+      1
+    ],
+    "HighsF": [
+      38,
+      44,
+      54,
+      62,
+      72,
+      84,
+      93,
+      91,
+      79,
+      64,
+      50,
+      38
+    ],
+    "Access": {
+      "wheelchair": true,
+      "stroller": true,
+      "paved": true,
+      "restrooms": true,
+      "quiet": true,
+      "shade": false,
+      "medical": true
+    },
+    "AccessDetails": "Visitor center, Fielding Garr Ranch and the causeway road are accessible. Beach access is sandy.",
+    "QuietTime": "Weekdays; avoid late May and June when biting gnats are heavy.",
+    "Tip": "You float easily in the Great Salt Lake because it is so salty. Rinse off at the beach showers.",
+    "DogFriendly": true,
+    "FamilyFriendly": true,
+    "ThingsToDo": [
+      "See the bison herd",
+      "Float in the Great Salt Lake",
+      "Visit Fielding Garr Ranch"
+    ],
+    "UserReviews": [
+      [
+        "Hannah, Australia",
+        4,
+        "So close to the city and bison everywhere! Bugs were bad in early June."
+      ]
+    ]
+  },
+  {
+    "FacilityID": "bearlake",
+    "FacilityName": "Bear Lake State Park",
+    "Type": "State Park",
+    "FacilityDescription": "The 'Caribbean of the Rockies': bright turquoise water, sandy beaches and famous raspberry shakes.",
+    "FacilityLatitude": 41.95,
+    "FacilityLongitude": -111.4,
+    "ElevationFt": 5900,
+    "Activities": [
+      "Water",
+      "Camping",
+      "Biking",
+      "Scenic Drive"
+    ],
+    "Rating": 4.6,
+    "Reviews": 8120,
+    "Cost": "About $15 per vehicle",
+    "CostTier": 1,
+    "Reservation": true,
+    "ReservationNote": "Summer campsites sell out; reserve months ahead.",
+    "Season": [
+      25,
+      25,
+      35,
+      45,
+      65,
+      90,
+      100,
+      98,
+      72,
+      45,
+      25,
+      25
+    ],
+    "Crowds": [
+      1,
+      1,
+      1,
+      1,
+      2,
+      3,
+      3,
+      3,
+      2,
+      1,
+      1,
+      1
+    ],
+    "HighsF": [
+      30,
+      34,
+      43,
+      52,
+      62,
+      72,
+      81,
+      80,
+      70,
+      57,
+      42,
+      31
+    ],
+    "Access": {
+      "wheelchair": false,
+      "stroller": true,
+      "paved": false,
+      "restrooms": true,
+      "quiet": false,
+      "shade": false,
+      "medical": false
+    },
+    "AccessDetails": "Restrooms and some parking are accessible. Beaches are sand; check with the park about beach access options.",
+    "QuietTime": "Weekdays in June or September.",
+    "Tip": "The water stays cool even in July. Try a raspberry shake in Garden City.",
+    "DogFriendly": true,
+    "FamilyFriendly": true,
+    "ThingsToDo": [
+      "Rent a kayak or paddleboard",
+      "Relax at Rendezvous Beach",
+      "Get a raspberry shake in Garden City"
+    ],
+    "UserReviews": [
+      [
+        "Sam, Layton",
+        5,
+        "That water color is unreal. Book camping early."
+      ]
+    ]
+  },
+  {
+    "FacilityID": "snowbird",
+    "FacilityName": "Snowbird",
+    "Type": "Ski Resort",
+    "FacilityDescription": "Deep powder, steep terrain and an aerial tram to 11,000 feet, about 40 minutes from Salt Lake City.",
+    "FacilityLatitude": 40.581,
+    "FacilityLongitude": -111.6566,
+    "ElevationFt": 7760,
+    "Activities": [
+      "Skiing",
+      "Hiking",
+      "Biking"
+    ],
+    "Rating": 4.7,
+    "Reviews": 12450,
+    "Cost": "Lift tickets $150+ per day",
+    "CostTier": 2,
+    "Reservation": false,
+    "ReservationNote": "Canyon road can close for avalanche control. Check UDOT and parking rules before you go.",
+    "Season": [
+      98,
+      100,
+      95,
+      70,
+      15,
+      10,
+      10,
+      10,
+      12,
+      20,
+      60,
+      92
+    ],
+    "Crowds": [
+      3,
+      3,
+      3,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      3
+    ],
+    "HighsF": [
+      30,
+      32,
+      38,
+      44,
+      53,
+      64,
+      73,
+      71,
+      62,
+      49,
+      37,
+      30
+    ],
+    "Access": {
+      "wheelchair": true,
+      "stroller": false,
+      "paved": false,
+      "restrooms": true,
+      "quiet": false,
+      "shade": false,
+      "medical": false
+    },
+    "AccessDetails": "The tram and main buildings are accessible. Adaptive ski lessons are offered at the resort through an adaptive sports partner.",
+    "QuietTime": "Midweek, especially Tuesday to Thursday.",
+    "Tip": "Utah snow is light and dry. Weekends and powder days bring heavy canyon traffic; go early.",
+    "DogFriendly": false,
+    "FamilyFriendly": true,
+    "ThingsToDo": [
+      "Ride the aerial tram to Hidden Peak",
+      "Ski powder in Mineral Basin",
+      "Summer: Oktoberfest and alpine slide"
+    ],
+    "UserReviews": [
+      [
+        "Felix, Switzerland",
+        5,
+        "The snow is as light as everyone says. Beat the canyon traffic by leaving early."
+      ]
+    ]
+  },
+  {
+    "FacilityID": "parkcity",
+    "FacilityName": "Park City Mountain",
+    "Type": "Ski Resort",
+    "FacilityDescription": "One of the largest ski resorts in the US, with a historic mountain town, and mountain biking and alpine coasters in summer.",
+    "FacilityLatitude": 40.6514,
+    "FacilityLongitude": -111.508,
+    "ElevationFt": 6900,
+    "Activities": [
+      "Skiing",
+      "Biking",
+      "Hiking"
+    ],
+    "Rating": 4.6,
+    "Reviews": 15320,
+    "Cost": "Lift tickets $150+ per day",
+    "CostTier": 2,
+    "Reservation": false,
+    "ReservationNote": "",
+    "Season": [
+      98,
+      100,
+      95,
+      65,
+      30,
+      60,
+      72,
+      72,
+      65,
+      45,
+      55,
+      92
+    ],
+    "Crowds": [
+      3,
+      3,
+      3,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      3
+    ],
+    "HighsF": [
+      33,
+      36,
+      44,
+      52,
+      62,
+      73,
+      81,
+      79,
+      70,
+      57,
+      43,
+      34
+    ],
+    "Access": {
+      "wheelchair": true,
+      "stroller": true,
+      "paved": true,
+      "restrooms": true,
+      "quiet": false,
+      "shade": false,
+      "medical": true
+    },
+    "AccessDetails": "Base areas and Main Street are accessible. Adaptive skiing is available nearby through the National Ability Center.",
+    "QuietTime": "Midweek in January (outside holidays).",
+    "Tip": "Free town buses connect the resort and Main Street, so you may not need a car.",
+    "DogFriendly": false,
+    "FamilyFriendly": true,
+    "ThingsToDo": [
+      "Ski 300+ trails",
+      "Walk historic Main Street",
+      "Summer: Alpine Coaster and mountain biking"
+    ],
+    "UserReviews": [
+      [
+        "Olivia, Brazil",
+        4,
+        "Huge mountain and fun town. Expensive, but the free buses helped."
+      ]
+    ]
+  },
+  {
+    "FacilityID": "brianhead",
+    "FacilityName": "Brian Head Resort",
+    "Type": "Ski Resort",
+    "FacilityDescription": "Southern Utah's ski resort, with family-friendly runs and the highest base elevation in Utah. Close to Cedar City.",
+    "FacilityLatitude": 37.7022,
+    "FacilityLongitude": -112.8499,
+    "ElevationFt": 9600,
+    "Activities": [
+      "Skiing",
+      "Biking",
+      "Hiking"
+    ],
+    "Rating": 4.4,
+    "Reviews": 4320,
+    "Cost": "Lift tickets $80+ per day",
+    "CostTier": 2,
+    "Reservation": false,
+    "ReservationNote": "",
+    "Season": [
+      98,
+      100,
+      95,
+      70,
+      15,
+      10,
+      10,
+      10,
+      12,
+      20,
+      60,
+      92
+    ],
+    "Crowds": [
+      3,
+      3,
+      3,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      3
+    ],
+    "HighsF": [
+      32,
+      33,
+      38,
+      44,
+      53,
+      65,
+      72,
+      70,
+      62,
+      51,
+      39,
+      32
+    ],
+    "Access": {
+      "wheelchair": false,
+      "stroller": false,
+      "paved": false,
+      "restrooms": true,
+      "quiet": false,
+      "shade": false,
+      "medical": false
+    },
+    "AccessDetails": "Lodges have accessible restrooms. Ask the resort about adaptive lessons.",
+    "QuietTime": "Midweek outside holidays.",
+    "Tip": "You can ski in the morning and see red rock at Cedar Breaks or Zion the same weekend.",
+    "DogFriendly": false,
+    "FamilyFriendly": true,
+    "ThingsToDo": [
+      "Ski family-friendly runs",
+      "Visit Cedar Breaks nearby",
+      "Summer: lift-served mountain biking"
+    ],
+    "UserReviews": [
+      [
+        "Chris, Cedar City",
+        4,
+        "Smaller and relaxed. Great for teaching kids to ski."
+      ]
+    ]
+  },
+  {
+    "FacilityID": "sundance",
+    "FacilityName": "Sundance Mountain Resort",
+    "Type": "Ski Resort",
+    "FacilityDescription": "A small, artsy resort under Mount Timpanogos with uncrowded runs, a zipline and Stewart Falls hikes in summer.",
+    "FacilityLatitude": 40.393,
+    "FacilityLongitude": -111.588,
+    "ElevationFt": 6100,
+    "Activities": [
+      "Skiing",
+      "Hiking",
+      "Biking"
+    ],
+    "Rating": 4.5,
+    "Reviews": 3980,
+    "Cost": "Lift tickets $100+ per day",
+    "CostTier": 2,
+    "Reservation": false,
+    "ReservationNote": "",
+    "Season": [
+      98,
+      100,
+      95,
+      65,
+      30,
+      60,
+      72,
+      72,
+      65,
+      45,
+      55,
+      92
+    ],
+    "Crowds": [
+      1,
+      1,
+      1,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      1,
+      1
+    ],
+    "HighsF": [
+      33,
+      36,
+      44,
+      52,
+      62,
+      73,
+      81,
+      79,
+      70,
+      57,
+      43,
+      34
+    ],
+    "Access": {
+      "wheelchair": false,
+      "stroller": true,
+      "paved": false,
+      "restrooms": true,
+      "quiet": true,
+      "shade": true,
+      "medical": true
+    },
+    "AccessDetails": "Main lodge and restaurants are accessible; trails are mostly natural surface.",
+    "QuietTime": "Most weekdays; a calmer option than the big resorts.",
+    "Tip": "About 30 minutes from Provo. Fall colors in late September are spectacular.",
+    "DogFriendly": false,
+    "FamilyFriendly": true,
+    "ThingsToDo": [
+      "Ski uncrowded runs",
+      "Hike to Stewart Falls",
+      "Ride the zipline"
+    ],
+    "UserReviews": [
+      [
+        "Ana, Provo",
+        5,
+        "Feels like a hidden gem. The fall colors are stunning."
+      ]
+    ]
+  },
+  {
+    "FacilityID": "nac",
+    "FacilityName": "National Ability Center",
+    "Type": "Adaptive Recreation",
+    "FacilityDescription": "Park City nonprofit offering adaptive skiing, biking, horseback riding, climbing and more for people of all abilities and their families.",
+    "FacilityLatitude": 40.711,
+    "FacilityLongitude": -111.549,
+    "ElevationFt": 6500,
+    "Activities": [
+      "Skiing",
+      "Biking",
+      "Water",
+      "Hiking"
+    ],
+    "Rating": 4.9,
+    "Reviews": 1240,
+    "Cost": "Lesson prices vary; scholarships available",
+    "CostTier": 2,
+    "Reservation": true,
+    "ReservationNote": "Book lessons and programs ahead so staff and equipment can be matched to your needs.",
+    "Season": [
+      95,
+      95,
+      90,
+      80,
+      80,
+      88,
+      92,
+      92,
+      88,
+      82,
+      80,
+      92
+    ],
+    "Crowds": [
+      1,
+      1,
+      1,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      1,
+      1
+    ],
+    "HighsF": [
+      33,
+      36,
+      44,
+      52,
+      62,
+      73,
+      81,
+      79,
+      70,
+      57,
+      43,
+      34
+    ],
+    "Access": {
+      "wheelchair": true,
+      "stroller": true,
+      "paved": true,
+      "restrooms": true,
+      "quiet": true,
+      "shade": true,
+      "medical": true
+    },
+    "AccessDetails": "Built for accessibility. Programs support physical, cognitive, sensory and developmental disabilities, with adaptive equipment and trained instructors.",
+    "QuietTime": "Ask staff about quieter session times.",
+    "Tip": "A great anchor for a family trip. Pair it with Park City for the rest of the group.",
+    "DogFriendly": false,
+    "FamilyFriendly": true,
+    "ThingsToDo": [
+      "Adaptive ski or snowboard lesson",
+      "Adaptive horseback riding",
+      "Indoor climbing wall"
+    ],
+    "UserReviews": [
+      [
+        "The Ortiz family, Murray",
+        5,
+        "Staff matched our son with the perfect instructor. First time he skied with his siblings."
+      ]
+    ]
+  },
+  {
+    "FacilityID": "saltflats",
+    "FacilityName": "Bonneville Salt Flats",
+    "Type": "Scenic Area",
+    "FacilityDescription": "A bright white salt plain so flat you can see the curve of the earth. Famous for land-speed racing and photos.",
+    "FacilityLatitude": 40.77,
+    "FacilityLongitude": -113.88,
+    "ElevationFt": 4200,
+    "Activities": [
+      "Scenic Drive",
+      "Stargazing"
+    ],
+    "Rating": 4.5,
+    "Reviews": 6750,
+    "Cost": "Free",
+    "CostTier": 0,
+    "Reservation": false,
+    "ReservationNote": "",
+    "Season": [
+      50,
+      50,
+      60,
+      62,
+      65,
+      72,
+      72,
+      75,
+      85,
+      80,
+      60,
+      50
+    ],
+    "Crowds": [
+      1,
+      1,
+      1,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      1,
+      1
+    ],
+    "HighsF": [
+      38,
+      44,
+      54,
+      62,
+      72,
+      84,
+      93,
+      91,
+      79,
+      64,
+      50,
+      38
+    ],
+    "Access": {
+      "wheelchair": true,
+      "stroller": true,
+      "paved": false,
+      "restrooms": true,
+      "quiet": true,
+      "shade": false,
+      "medical": false
+    },
+    "AccessDetails": "The rest area viewpoint off I-80 has accessible parking and restrooms. The salt surface is flat but can be wet or soft.",
+    "QuietTime": "Almost any time; sunrise and sunset are best for photos.",
+    "Tip": "In spring the flats are often covered in water. Wash your car afterward; salt is corrosive.",
+    "DogFriendly": true,
+    "FamilyFriendly": true,
+    "ThingsToDo": [
+      "Take perspective photos",
+      "Watch sunset over the salt",
+      "See Speed Week in August"
+    ],
+    "UserReviews": [
+      [
+        "Yuki, Japan",
+        4,
+        "So strange and beautiful. Not much to do, but worth the stop on I-80."
+      ]
+    ]
+  },
+  {
+    "FacilityID": "timpcave",
+    "FacilityName": "Timpanogos Cave National Monument",
+    "Type": "National Monument",
+    "FacilityDescription": "A ranger-guided tour of three colorful caves high in American Fork Canyon.",
+    "FacilityLatitude": 40.444,
+    "FacilityLongitude": -111.705,
+    "ElevationFt": 5600,
+    "Activities": [
+      "Hiking",
+      "Scenic Drive"
+    ],
+    "Rating": 4.7,
+    "Reviews": 5210,
+    "Cost": "Tour tickets about $12 per adult",
+    "CostTier": 1,
+    "Reservation": true,
+    "ReservationNote": "Tour tickets required and often sell out; book on Recreation.gov. Open late spring to early fall.",
+    "Season": [
+      0,
+      0,
+      0,
+      0,
+      80,
+      92,
+      92,
+      90,
+      85,
+      55,
+      0,
+      0
+    ],
+    "Crowds": [
+      1,
+      1,
+      1,
+      1,
+      2,
+      3,
+      3,
+      3,
+      2,
+      1,
+      1,
+      1
+    ],
+    "HighsF": [
+      33,
+      36,
+      44,
+      52,
+      62,
+      73,
+      81,
+      79,
+      70,
+      57,
+      43,
+      34
+    ],
+    "Access": {
+      "wheelchair": false,
+      "stroller": false,
+      "paved": true,
+      "restrooms": true,
+      "quiet": false,
+      "shade": true,
+      "medical": true
+    },
+    "AccessDetails": "The trail is paved but steep: about 1.5 miles each way with 1,000 ft of climbing. Not wheelchair or stroller friendly. The visitor center is accessible.",
+    "QuietTime": "The first tour of a weekday.",
+    "Tip": "The cave stays about 45°F (7°C) all year; bring a jacket even in July.",
+    "DogFriendly": false,
+    "FamilyFriendly": true,
+    "ThingsToDo": [
+      "Take the ranger-guided cave tour",
+      "Drive the Alpine Loop",
+      "Picnic along American Fork Creek"
+    ],
+    "UserReviews": [
+      [
+        "Jen, Lehi",
+        4,
+        "The hike up is steep for little legs. The cave is worth it."
+      ]
+    ]
+  },
+  {
+    "FacilityID": "watchman",
+    "FacilityName": "Watchman Campground (Zion)",
+    "Type": "Campground",
+    "FacilityDescription": "Zion's main campground, by the Virgin River and a short walk to the visitor center and shuttle.",
+    "FacilityLatitude": 37.198,
+    "FacilityLongitude": -112.987,
+    "ElevationFt": 3900,
+    "Activities": [
+      "Camping",
+      "Hiking",
+      "Biking",
+      "Water",
+      "Stargazing"
+    ],
+    "Rating": 4.6,
+    "Reviews": 3870,
+    "Cost": "About $20 to $30 per night",
+    "CostTier": 2,
+    "Reservation": true,
+    "ReservationNote": "Reservations open months ahead on Recreation.gov and fill fast.",
+    "Season": [
+      45,
+      50,
+      75,
+      92,
+      90,
+      70,
+      55,
+      58,
+      85,
+      95,
+      70,
+      45
+    ],
+    "Crowds": [
+      1,
+      1,
+      2,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      2,
+      1
+    ],
+    "HighsF": [
+      54,
+      60,
+      68,
+      77,
+      87,
+      97,
+      102,
+      100,
+      92,
+      79,
+      64,
+      54
+    ],
+    "Access": {
+      "wheelchair": true,
+      "stroller": true,
+      "paved": true,
+      "restrooms": true,
+      "quiet": false,
+      "shade": true,
+      "medical": false
+    },
+    "AccessDetails": "Accessible campsites and restrooms are available. Connects to the paved Pa'rus Trail.",
+    "QuietTime": "Weeknights in late fall.",
+    "Tip": "Many sites have shade trees, but summer nights stay warm. Bring a fan.",
+    "DogFriendly": true,
+    "FamilyFriendly": true,
+    "ThingsToDo": [
+      "Walk to the shuttle stop",
+      "Bike the Pa'rus Trail",
+      "Stargaze from your site"
+    ],
+    "UserReviews": [
+      [
+        "Mark, Colorado",
+        4,
+        "Best location in Zion. Book the day reservations open."
+      ]
+    ]
+  },
+  {
+    "FacilityID": "uintas",
+    "FacilityName": "Mirror Lake Highway (Uinta Mountains)",
+    "Type": "Scenic Area",
+    "FacilityDescription": "A high mountain byway past alpine lakes, wildflowers and pine forest. Cool escape from summer heat.",
+    "FacilityLatitude": 40.7,
+    "FacilityLongitude": -110.88,
+    "ElevationFt": 10000,
+    "Activities": [
+      "Scenic Drive",
+      "Hiking",
+      "Camping",
+      "Water",
+      "Wildlife"
+    ],
+    "Rating": 4.8,
+    "Reviews": 4560,
+    "Cost": "Recreation pass about $10 per vehicle (3 days)",
+    "CostTier": 1,
+    "Reservation": false,
+    "ReservationNote": "The upper highway closes for snow, usually from fall to late spring.",
+    "Season": [
+      0,
+      0,
+      0,
+      0,
+      10,
+      60,
+      95,
+      95,
+      85,
+      30,
+      0,
+      0
+    ],
+    "Crowds": [
+      1,
+      1,
+      1,
+      1,
+      2,
+      3,
+      3,
+      3,
+      2,
+      1,
+      1,
+      1
+    ],
+    "HighsF": [
+      25,
+      28,
+      34,
+      40,
+      50,
+      62,
+      70,
+      68,
+      59,
+      46,
+      33,
+      26
+    ],
+    "Access": {
+      "wheelchair": true,
+      "stroller": true,
+      "paved": true,
+      "restrooms": true,
+      "quiet": true,
+      "shade": true,
+      "medical": false
+    },
+    "AccessDetails": "Some lakeside areas have accessible paths and fishing spots. Confirm current conditions with the forest service.",
+    "QuietTime": "Weekdays; side lakes away from Mirror Lake itself.",
+    "Tip": "Over 10,000 ft (3,000 m). Afternoon thunderstorms are common in summer; start early.",
+    "DogFriendly": true,
+    "FamilyFriendly": true,
+    "ThingsToDo": [
+      "Fish at Mirror Lake",
+      "Hike to Bald Mountain",
+      "Picnic by Provo River Falls"
+    ],
+    "UserReviews": [
+      [
+        "Grace, Heber",
+        5,
+        "Cool, green and gorgeous when the valley is 100°F."
+      ]
+    ]
+  },
+  {
+    "FacilityID": "kodachrome",
+    "FacilityName": "Kodachrome Basin State Park",
+    "Type": "State Park",
+    "FacilityDescription": "Colorful rock chimneys and quiet trails near Bryce Canyon, named by National Geographic after the film.",
+    "FacilityLatitude": 37.5,
+    "FacilityLongitude": -111.993,
+    "ElevationFt": 5800,
+    "Activities": [
+      "Hiking",
+      "Camping",
+      "Biking",
+      "Stargazing"
+    ],
+    "Rating": 4.7,
+    "Reviews": 2980,
+    "Cost": "About $15 per vehicle",
+    "CostTier": 1,
+    "Reservation": false,
+    "ReservationNote": "",
+    "Season": [
+      45,
+      50,
+      75,
+      92,
+      90,
+      70,
+      55,
+      58,
+      85,
+      95,
+      70,
+      45
+    ],
+    "Crowds": [
+      1,
+      1,
+      1,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      1,
+      1
+    ],
+    "HighsF": [
+      42,
+      48,
+      57,
+      65,
+      75,
+      86,
+      91,
+      88,
+      80,
+      66,
+      52,
+      42
+    ],
+    "Access": {
+      "wheelchair": false,
+      "stroller": true,
+      "paved": false,
+      "restrooms": true,
+      "quiet": true,
+      "shade": false,
+      "medical": false
+    },
+    "AccessDetails": "The short Nature Trail is mostly flat; check the surface for wheelchairs. Campground restrooms are accessible.",
+    "QuietTime": "Nearly always; a calm base camp near Bryce.",
+    "Tip": "Lower and warmer than Bryce, about 30 minutes away.",
+    "DogFriendly": true,
+    "FamilyFriendly": true,
+    "ThingsToDo": [
+      "Hike the Panorama Trail",
+      "Walk the short Nature Trail",
+      "Use it as a quiet base for Bryce"
+    ],
+    "UserReviews": [
+      [
+        "Ivan, Canada",
+        5,
+        "Quiet campground and colorful rocks. A great Bryce alternative."
+      ]
+    ]
+  },
+  {
+    "FacilityID": "naturalbridges",
+    "FacilityName": "Natural Bridges National Monument",
+    "Type": "National Monument",
+    "FacilityDescription": "Three massive stone bridges carved by water, and the world's first International Dark Sky Park.",
+    "FacilityLatitude": 37.6,
+    "FacilityLongitude": -110,
+    "ElevationFt": 6500,
+    "Activities": [
+      "Hiking",
+      "Camping",
+      "Scenic Drive",
+      "Stargazing"
+    ],
+    "Rating": 4.7,
+    "Reviews": 2340,
+    "Cost": "$20 per vehicle (7 days)",
+    "CostTier": 2,
+    "Reservation": false,
+    "ReservationNote": "",
+    "Season": [
+      45,
+      50,
+      75,
+      92,
+      90,
+      70,
+      55,
+      58,
+      85,
+      95,
+      70,
+      45
+    ],
+    "Crowds": [
+      1,
+      1,
+      1,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      1,
+      1
+    ],
+    "HighsF": [
+      42,
+      48,
+      57,
+      65,
+      75,
+      86,
+      91,
+      88,
+      80,
+      66,
+      52,
+      42
+    ],
+    "Access": {
+      "wheelchair": true,
+      "stroller": true,
+      "paved": true,
+      "restrooms": true,
+      "quiet": true,
+      "shade": false,
+      "medical": false
+    },
+    "AccessDetails": "The 9-mile Bridge View Drive has overlooks of all three bridges; several overlooks and the visitor center are accessible.",
+    "QuietTime": "Almost always quiet; remote and peaceful.",
+    "Tip": "Very remote. Fill your gas tank in Blanding (about 1 hour).",
+    "DogFriendly": false,
+    "FamilyFriendly": true,
+    "ThingsToDo": [
+      "Drive Bridge View Drive",
+      "Hike down to Sipapu Bridge",
+      "Join a night sky program"
+    ],
+    "UserReviews": [
+      [
+        "Elena, Italy",
+        5,
+        "Remote and silent. The Milky Way was incredible."
+      ]
+    ]
+  }
+]

@@ -1,0 +1,22 @@
+[project]
+name = "crimsonhacks-teamawesome"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Roscoe Moedl", email = "roscoemoedl@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = []
+
+[project.scripts]
+crimsonhacks-teamawesome = "crimsonhacks_teamawesome:main"
+
+[build-system]
+requires = ["uv_build>=0.13.7,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.uv.workspace]
+members = [
+    "outdoorsApp",
+]

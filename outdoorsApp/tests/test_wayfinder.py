@@ -1,8 +1,12 @@
 """Behavior checks for the local trip-planning prototype."""
 
+import os
 import unittest
 
-from outdoorsApp.outdoorsApp import State
+# Test against the curated samples only, not whatever is in a local places cache.
+os.environ["WAYFINDER_SAMPLE_ONLY"] = "1"
+
+from outdoorsApp.outdoorsApp import State  # noqa: E402
 from outdoorsApp.place_data import BY_ID, compute, date_error, saved_ids, trip_months
 
 

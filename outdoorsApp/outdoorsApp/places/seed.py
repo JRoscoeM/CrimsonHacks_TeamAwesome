@@ -10,27 +10,30 @@ Sources and the key each needs (see .env.example):
     nps_campgrounds  NPS campgrounds in Utah                NPS_API_KEY
     ridb             Recreation.gov campgrounds in Utah     RIDB_API_KEY
     osm              State parks + ski resorts (OSM)        none
+    climate          Elevation + monthly avg temps (Open-Meteo)  none; only for
+                     places that don't have it yet, takes a few minutes
+    forecast         16-day forecast + current conditions (Open-Meteo)  none
 
 A source is only replaced after it downloads successfully, so a failed run
-leaves the old data in place. Re-run whenever you want fresh data.
+leaves the old data in place. Re-run whenever you want fresh data. The app
+also refreshes forecasts by itself when they're more than an hour old.
 """
 
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 import time
-import urllib.error
 import urllib.parse
-import urllib.request
 
 from .. import keys
+from . import weather
+from .http import SourceError
+from .http import request_json as _request_json
 from .model import Kind, Place, haversine_mi
 from .parsers import parse_place
 from .store import connect, find_places, replace_source, stats
 
-USER_AGENT = "UtahWayfinder/0.1 (CrimsonHacks project)"
 NPS_BASE = "https://developer.nps.gov/api/v1"
 RIDB_BASE = "https://ridb.recreation.gov/api/v1"
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
@@ -45,33 +48,6 @@ area["ISO3166-2"="US-UT"][admin_level=4]->.ut;
 );
 out center tags;
 """
-
-
-class SourceError(RuntimeError):
-    pass
-
-
-def _request_json(url: str, *, params: dict | None = None, headers: dict | None = None,
-                  data: bytes | None = None, retries: int = 3):
-    # Keys always go in headers, never the URL, so they can't leak into error messages.
-    if params:
-        url = f"{url}?{urllib.parse.urlencode(params)}"
-    request = urllib.request.Request(url, data=data, headers={"User-Agent": USER_AGENT, **(headers or {})})
-    for attempt in range(retries):
-        try:
-            with urllib.request.urlopen(request, timeout=120) as response:
-                return json.load(response)
-        except urllib.error.HTTPError as error:
-            if error.code in (429, 500, 502, 503, 504) and attempt < retries - 1:
-                time.sleep(5 * (attempt + 1))
-                continue
-            raise SourceError(f"HTTP {error.code} from {url.split('?')[0]}") from None
-        except (urllib.error.URLError, TimeoutError) as error:
-            if attempt < retries - 1:
-                time.sleep(3)
-                continue
-            raise SourceError(f"Couldn't reach {url.split('?')[0]}: {error}") from None
-    raise SourceError("unreachable")
 
 
 # --- Fetchers: each returns a list of raw records ----------------------------
@@ -164,10 +140,30 @@ SOURCES = {
 }
 
 
+WEATHER_STEPS = ("climate", "forecast")  # run after the place sources
+
+
+def _weather_step(step: str, conn) -> int | str:
+    print(f"- {step}: downloading...")
+    try:
+        if step == "climate":
+            count = weather.update_climate(conn, progress=lambda msg: print(f"  climate: {msg}"))
+        else:
+            count = weather.refresh_forecasts(conn, max_age_minutes=0)
+    except SourceError as error:
+        print(f"- {step}: FAILED, kept existing data ({error})")
+        return "failed"
+    print(f"- {step}: updated {count} places")
+    return count
+
+
 def seed(only: list[str] | None = None, db_path: str | None = None) -> dict:
     conn = connect(db_path)
     results = {}
-    for source in only or list(SOURCES):
+    for source in only or [*SOURCES, *WEATHER_STEPS]:
+        if source in WEATHER_STEPS:
+            results[source] = _weather_step(source, conn)
+            continue
         fetch, key_name = SOURCES[source]
         if key_name and not getattr(keys, key_name):
             print(f"- {source}: skipped ({key_name} isn't set in .env)")
@@ -198,11 +194,12 @@ def seed(only: list[str] | None = None, db_path: str | None = None) -> dict:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--only", help=f"comma-separated subset of: {', '.join(SOURCES)}")
+    steps = [*SOURCES, *WEATHER_STEPS]
+    parser.add_argument("--only", help=f"comma-separated subset of: {', '.join(steps)}")
     parser.add_argument("--db", help="database path (default: data/places.db)")
     args = parser.parse_args(argv)
     only = [s.strip() for s in args.only.split(",")] if args.only else None
-    unknown = set(only or []) - set(SOURCES)
+    unknown = set(only or []) - set(steps)
     if unknown:
         parser.error(f"unknown source(s): {', '.join(sorted(unknown))}")
     results = seed(only, args.db)

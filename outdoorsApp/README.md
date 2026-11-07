@@ -41,6 +41,10 @@ It downloads every source that has a key and skips the rest:
 | `nps_campgrounds` | NPS campgrounds | `NPS_API_KEY` |
 | `ridb` | Recreation.gov campgrounds (duplicates of NPS ones are skipped) | `RIDB_API_KEY` |
 | `osm` | State parks and ski resorts (OpenStreetMap) | none |
+| `climate` | Each place's elevation and average high/low per month, from last year's weather records (Open-Meteo). Only fetches places that don't have it yet. The first run takes a few minutes because it's paced to stay under Open-Meteo's free limits. | none |
+| `forecast` | Current conditions plus a 16-day forecast for every place (Open-Meteo) | none |
+
+The app also refreshes forecasts by itself, in the background, when the saved ones are more than an hour old.
 
 To refresh only some sources, run `python -m outdoorsApp.places.seed --only osm,ridb`. If a download fails, that source keeps its old data.
 
@@ -84,6 +88,26 @@ python -m outdoorsApp.places --id nps:zion --raw                # one place, ful
 - **Don't store Google ratings or reviews in the cache.** Google's terms don't allow it. Fetch them when a place is shown. Storing Google place IDs is allowed: use `set_google_place_id()`.
 - **OSM places have no activity tags yet**, so state parks and ski resorts won't match an activity filter.
 
+### How the UI uses the cache
+
+`outdoorsApp/place_data.py` builds the app's `PLACES` list from two sources:
+
+- **Curated samples** (`sample_places.json`). These keep all their hand-written details. When the cache has the same place, the sample also gets the cache's real photo and official website.
+- **Every other place in the cache**, converted to the same format. Data we don't have yet gets an honest default: "No rating yet", "Check with the site" for cost, and elevation "Not listed". Seasonal scores, crowds and temperatures are borrowed from the nearest similar curated place, and the detail view says so.
+
+**Weather**
+
+- **Trips within the next 16 days** show the forecast high (for example "56°F forecast"), a day-by-day forecast in the detail view, and "Right now" conditions with the time of the reading.
+- **Trips further out** show average highs for those months. Cache places use their own weather records. Curated places keep their hand-entered averages, which describe the area people visit rather than the park's center point.
+- **Cache places also show** their real elevation, plus whatever the source provides: fees, campsite counts, phone numbers, hours and amenities.
+
+Other things to know:
+
+- **Restart the app after re-seeding.** The places and climate data are read once at startup. Forecasts update without a restart.
+- **Card images** fall back to the artwork in `assets/landscapes/` when a place has no photo.
+- **Results are capped at the top 60.** The caption still counts every place that matches.
+- **To use only the curated samples**, set `WAYFINDER_SAMPLE_ONLY=1`. The tests in `tests/test_wayfinder.py` do this so their counts don't depend on your local cache.
+
 ## 4. Run the app
 
 ```
@@ -91,36 +115,3 @@ uv run reflex run
 ```
 
 The app is at http://localhost:3000.
-
-## TODO: connect the places cache to the UI
-
-Do this after the in-progress `outdoorsApp/outdoorsApp.py` changes are pushed, so they don't conflict. Everything below goes in `outdoorsApp.py`. The `places` package it relies on is already done.
-
-**State and data**
-- [ ] Import `Kind`, `Place`, `connect` and `find_places` from `.places`.
-- [ ] Add a `PlaceCard` dataclass for Reflex state: `id`, `name`, `kind_label`, `image_url`, `image_alt`, `credit`, `url`, `miles`, `km`, `gradient`, `tags: list[str]`. Add a `to_card(place)` helper that fills it from a `Place`.
-- [ ] State vars: `origin` (default `"Salt Lake City"`), `types`, `activities`, `access` (lists of selected filter labels), `preset`, `places: list[PlaceCard]`, `total`, `cache_empty`.
-- [ ] Add a `_refresh()` helper that calls `find_places(kind=..., activities=..., near=ORIGINS[origin], wheelchair=..., restrooms=..., limit=None)`, keeps the 60 closest results, and sets `cache_empty` when the database has no rows.
-- [ ] Event handlers that each end by calling `_refresh()`: `load_places` (run on page load: `app.add_page(..., on_load=State.load_places)`), `set_origin`, `toggle_filter(group, label, checked)`, `apply_preset(name)` (tapping the active pill again clears it), and `clear_filters`.
-
-**Header**
-- [ ] Replace the "Starting from" text input with an `rx.select` of starting cities (`ORIGINS`: Salt Lake City, Ogden, Provo, Park City, Logan, Moab, Cedar City, St. George), each with its coordinates.
-- [ ] Disable "📍 Near me" until browser location is connected. Change the hint to say distances are straight-line for now.
-
-**Filters sidebar**
-- [ ] Bind the checkboxes to state with `checked=State.<group>.contains(label)` and `on_change=lambda checked: State.toggle_filter(group, label, checked)`. Build each one in its own helper function, so every lambda captures its own label.
-- [ ] Type options map to place kinds: "National Park / Monument" covers national parks, monuments, recreation areas and historic sites. Then State Park, Ski Resort and Campground.
-- [ ] Activities: Hiking, Camping, Skiing, Scenic Drive, Stargazing, Fishing.
-- [ ] Accessibility: Wheelchair friendly and Restrooms. Drop "Stroller friendly": no source has that data.
-- [ ] Show "Good for your dates" and "Extras" as disabled with a "coming soon" note until weather, Google Places and crowd data exist.
-- [ ] Wire "Clear all" to `clear_filters`. Remove "Show results", since the filters apply instantly.
-
-**Results**
-- [ ] Render the grid with `rx.foreach(State.places, place_card)`. `place_card` receives a Var, so use `rx.cond` and `rx.foreach` instead of Python `if` and loops.
-- [ ] Card image: show `image_url` if there is one, otherwise the per-kind gradient. Overlay the photo credit (`📷 credit`) when present.
-- [ ] Show distance with `rx.cond(State.metric, place.km, place.miles)`.
-- [ ] Show activity tags as badges (up to 4).
-- [ ] Make "Details" a link to `place.url` that opens in a new tab.
-- [ ] Remove the placeholder rating, drive time, weather, crowds and MATCH score until that data is real.
-- [ ] Quick-filter pills: Parks, Skiing, Camping, Hiking, highlighted when active.
-- [ ] Result count text: "N places, nearest first from {origin}", plus "(showing the closest 60)" when there are more. If the cache is empty, show a callout telling people to run the seed.

@@ -4,6 +4,7 @@ The HTML mockup is only a design reference. Sample content and artwork live in
 independent local fixtures; all interactions below use Reflex state and events.
 """
 
+import asyncio
 import json
 from datetime import date, timedelta
 
@@ -12,10 +13,13 @@ from reflex.style import set_color_mode
 
 from .place_data import (
     ACCESS, ACTIVITIES, BY_ID, CITIES, MONTHS, PLACES, TYPES,
-    compute, crowd_label, date_error, date_range, distance_text, drive_time,
-    elevation, matches, month_names, packing_list, saved_ids, score_label,
-    temperature, trip_months,
+    compute, crowd_label, current_conditions, date_error, date_range, distance_text, drive_time,
+    elevation, landscape, matches, month_names, packing_list, rating_text,
+    saved_ids, score_label, temperature, trip_forecast, trip_months, weather_text,
 )
+from .place_data import refresh_weather as refresh_saved_forecasts
+
+MAX_RESULTS = 60  # cards/pins rendered at once; the caption still counts every match
 
 BG, INK, MUTED, LINE = "#F5F0E6", "#1F2A1F", "#56604F", "#DDD5C4"
 BRAND, ACCENT, ACCENT_SOFT, CARD = "#2F5233", "#3B6E4A", "#E4EEDF", "#FFFFFF"
@@ -31,7 +35,7 @@ BUTTON = dict(
 )
 COMPARISON_ROWS = [
     ("Score for your dates", "score_text"), ("Rating", "rating"),
-    ("Estimated drive", "drive_full"), ("Average high", "weather"),
+    ("Estimated drive", "drive_full"), ("High for your dates", "weather"),
     ("Crowds", "crowds"), ("Busiest months", "busy"), ("Cost", "cost"),
     ("Reservation", "reservation"), ("Wheelchair friendly", "wheelchair"),
     ("Stroller friendly", "stroller"), ("Quieter setting", "quiet"),
@@ -60,6 +64,15 @@ class State(rx.State):
     filters_open: bool = False
     detail_open: bool = False
     detail_id: str = "zion"
+    # Bumped after new forecasts are downloaded, so weather-dependent vars recompute.
+    weather_version: int = 0
+
+    @rx.event(background=True)
+    async def refresh_weather(self):
+        """On page load: download fresh forecasts if the saved ones are over an hour old."""
+        if await asyncio.to_thread(refresh_saved_forecasts):
+            async with self:
+                self.weather_version += 1
 
     @rx.event
     def set_location_text(self, value: str):
@@ -220,12 +233,20 @@ class State(rx.State):
     def selected_names(self) -> str:
         return " · ".join(BY_ID[item]["FacilityName"] for item in self.selected_places if item in BY_ID)
 
+    def _forecast(self, place: dict) -> list[dict] | None:
+        _ = self.weather_version  # dependency: recompute when forecasts refresh
+        return trip_forecast(place["FacilityID"], self.arrive, self.leave)
+
     def _stats(self, place: dict):
         months = trip_months(self.arrive, self.leave) or [date.today().month - 1]
-        return compute(place, months, (self.origin_lat, self.origin_lon))
+        forecast = self._forecast(place)
+        high = sum(day["high_f"] for day in forecast) / len(forecast) if forecast else None
+        return compute(place, months, (self.origin_lat, self.origin_lon), high_f=high)
 
     def _view(self, place: dict) -> dict[str, str]:
         stats = self._stats(place)
+        forecast = self._forecast(place) is not None
+        now = current_conditions(place["FacilityID"])
         label, color = score_label(stats.score)
         tags = []
         if stats.crowds >= 2.5:
@@ -240,13 +261,22 @@ class State(rx.State):
         view = {
             "id": place["FacilityID"], "name": place["FacilityName"], "kind": place["Type"],
             "description": place["FacilityDescription"],
-            "image": "/landscapes/" + place["Type"].lower().replace(" ", "-") + ".svg",
+            "image": place.get("Image") or landscape(place["Type"]),
+            "image_credit": place.get("ImageCredit", ""),
+            "url": place.get("Url", ""),
+            "estimate_note": place.get("EstimateNote", ""),
             "score": str(stats.score), "score_label": label, "score_color": color,
             "score_text": f"{stats.score}/100 · {label}",
-            "rating": f"★ {place['Rating']:.1f} ({place['Reviews']:,})",
+            "rating": rating_text(place),
             "drive": drive_time(stats.hours),
             "drive_full": f"{drive_time(stats.hours)} · {distance_text(stats.miles, self.metric)}",
-            "weather": temperature(stats.high_f, self.metric),
+            "weather": temperature(stats.high_f, self.metric) + (" forecast" if forecast else ""),
+            "weather_kind": "Forecast highs" if forecast else "Average highs",
+            "now": (f"{temperature(now['temp_f'], self.metric)}"
+                    + (f" · {now['text']}" if now["text"] else "")
+                    + (f" · as of {now['as_of']}" if now["as_of"] else "")) if now else "",
+            "hours": place.get("Hours", ""), "phone": place.get("Phone", ""),
+            "campsites": place.get("Campsites", ""), "amenities_text": place.get("AmenitiesText", ""),
             "crowds": crowd_label(stats.crowds),
             "cost": place["Cost"], "elevation": elevation(place["ElevationFt"], self.metric),
             "reservation": "Needed" if place["Reservation"] else "Not needed for entry",
@@ -269,8 +299,8 @@ class State(rx.State):
             view[key + "_best"] = "no"
         return view
 
-    @rx.var
-    def results(self) -> list[dict[str, str]]:
+    def _matching(self) -> list[dict]:
+        """Every place that passes the filters, sorted. Not a var, so it isn't sent to the browser."""
         if self.date_warning:
             return []
         candidates = [
@@ -288,13 +318,19 @@ class State(rx.State):
             "crowds": lambda item: (item[1].crowds, -item[1].score),
         }
         candidates.sort(key=sorters.get(self.sort_by, sorters["score"]))
-        return [self._view(place) for place, _ in candidates]
+        return [place for place, _ in candidates]
+
+    @rx.var
+    def results(self) -> list[dict[str, str]]:
+        return [self._view(place) for place in self._matching()[:MAX_RESULTS]]
 
     @rx.var
     def result_caption(self) -> str:
-        count = len(self.results)
+        count = len(self._matching())
         radius = f" · within {distance_text(float(self.radius), self.metric)}" if self.radius != "0" else ""
-        return f"{count} {'place' if count == 1 else 'places'} for {self.trip_label} · from {self.origin_name}{radius}"
+        shown = f" · showing the top {MAX_RESULTS}" if count > MAX_RESULTS else ""
+        return (f"{count} {'place' if count == 1 else 'places'} for {self.trip_label} · "
+                f"from {self.origin_name}{radius}{shown}")
 
     @rx.var
     def detail(self) -> dict[str, str]:
@@ -302,10 +338,27 @@ class State(rx.State):
 
     @rx.var
     def detail_facts(self) -> list[dict[str, str]]:
-        return [{"label": label, "value": self.detail[key]} for label, key in [
+        facts = [{"label": label, "value": self.detail[key]} for label, key in [
             ("Estimated drive", "drive_full"), ("Rating", "rating"), ("Cost", "cost"),
             ("Elevation", "elevation"), ("Reservation", "reservation"), ("Dogs", "dogs"),
         ]]
+        # From the places cache, when the source has them.
+        facts += [{"label": label, "value": self.detail[key]} for label, key in [
+            ("Campsites", "campsites"), ("Phone", "phone"), ("Hours", "hours"), ("Amenities", "amenities_text"),
+        ] if self.detail[key]]
+        return facts
+
+    @rx.var
+    def detail_forecast(self) -> list[dict[str, str]]:
+        """Day-by-day forecast for the trip (empty if the trip is beyond the 16-day forecast)."""
+        days = self._forecast(BY_ID[self.detail_id]) or []
+        return [
+            {"day": f"{date.fromisoformat(d['date']):%a %b} {date.fromisoformat(d['date']).day}",
+             "temps": f"{temperature(d['high_f'], self.metric)} / {temperature(d['low_f'], self.metric)}",
+             "text": weather_text(d["code"]),
+             "rain": f"{d['precip_pct']}% rain" if d.get("precip_pct") else ""}
+            for d in days
+        ]
 
     @rx.var
     def detail_months(self) -> list[dict[str, str]]:
@@ -342,10 +395,12 @@ class State(rx.State):
     def detail_expectations(self) -> list[str]:
         place, view = BY_ID[self.detail_id], self.detail
         items = [
-            f"Weather: average highs near {view['weather']} for your dates.",
+            f"Weather: {view['weather_kind'].lower()} near {view['weather'].removesuffix(' forecast')} for your dates.",
             f"Crowds: {view['crowds'].lower()}. Busiest months: {view['busy']}.",
-            f"Elevation: {view['elevation']}." + (" Take time to adjust to the altitude." if place["ElevationFt"] >= 7000 else ""),
         ]
+        if place["ElevationFt"] is not None:
+            items.append(f"Elevation: {view['elevation']}."
+                         + (" Take time to adjust to the altitude." if place["ElevationFt"] >= 7000 else ""))
         if place["ReservationNote"]:
             items.append("Reservations: " + place["ReservationNote"])
         items.append(f"Getting there: about {view['drive_full']} from {self.origin_name}.")
@@ -383,8 +438,9 @@ class State(rx.State):
                 "cost": ([p["CostTier"] for p in places], min),
             }
             for key, (values, choose) in ranked.items():
-                if len(set(values)) > 1:
-                    best = choose(values)
+                known = [v for v in values if v is not None]  # e.g. cost unknown for cache places
+                if len(set(known)) > 1:
+                    best = choose(known)
                     for view, value in zip(views, values):
                         if value == best:
                             view[key + "_best"] = "yes"
@@ -622,6 +678,15 @@ def compare_button(place, **props) -> rx.Component:
     )
 
 
+def photo_credit(place, **position) -> rx.Component:
+    return rx.cond(
+        place["image_credit"] != "",
+        rx.text("📷 ", place["image_credit"], position="absolute", color="white", background="rgba(0,0,0,.5)",
+                padding="1px 6px", border_radius="6px", font_size="0.65rem", overflow="hidden",
+                white_space="nowrap", text_overflow="ellipsis", pointer_events="none", **position),
+    )
+
+
 def place_card(place) -> rx.Component:
     return rx.el.article(
         rx.box(
@@ -633,6 +698,7 @@ def place_card(place) -> rx.Component:
             rx.text(place["kind"], background="rgba(0,0,0,.55)", color="white", border_radius="999px",
                     padding="4px 9px", font_size="0.72rem", font_weight="700", position="absolute", top="10px", left="10px",
                     pointer_events="none"),
+            photo_credit(place, left="8px", bottom="6px", max_width="55%"),
             rx.box(
                 rx.text(place["score"], color=place["score_color"], font_size="1.35rem", font_weight="800"),
                 rx.text(place["score_label"], color=place["score_color"], font_size="0.65rem", font_weight="800"),
@@ -753,7 +819,8 @@ def results() -> rx.Component:
                                 columns="repeat(auto-fill, minmax(min(100%, 300px), 1fr))", gap="16px", width="100%")),
             ),
         ),
-        small_text("Sample data · Seasonal scores, drive times, ratings and access details are prototype estimates.",
+        small_text("Places from the National Park Service, Recreation.gov and OpenStreetMap, plus curated samples. "
+                   "Seasonal scores, drive times and crowds are estimates; curated ratings and reviews are sample data.",
                    margin_top="20px"),
         width="100%", min_width="0",
     )
@@ -791,16 +858,35 @@ def detail_dialog() -> rx.Component:
                 rx.image(src=p["image"], alt="", width="100%", height="140px", object_fit="cover"),
                 rx.text(p["kind"], position="absolute", top="10px", left="16px", color="white",
                         background="rgba(0,0,0,.55)", border_radius="999px", padding="4px 9px", font_size="0.75rem", font_weight="700"),
+                photo_credit(p, right="10px", bottom="8px", max_width="60%"),
                 position="relative",
             ),
             rx.vstack(
                 rx.dialog.description(p["description"], color=INK, font_size="0.95rem", margin="0"),
+                rx.cond(p["url"] != "", rx.link("Official site ↗", href=p["url"], is_external=True,
+                                                color=ACCENT, font_weight="700", font_size="0.9rem")),
+                rx.cond(p["estimate_note"] != "", small_text(p["estimate_note"])),
                 rx.box(
                     rx.text(p["score_text"], " for ", State.trip_label, font_weight="800", color=BRAND),
-                    rx.text("Average highs around ", p["weather"], "; ", p["crowds"], " crowds. Best months: ", p["best"], ".",
+                    rx.text(p["weather_kind"], " around ", p["weather"], "; ", p["crowds"], " crowds. Best months: ", p["best"], ".",
                             font_size="0.9rem", margin_top="4px"),
+                    rx.cond(p["now"] != "", rx.text("Right now: ", p["now"], font_size="0.85rem", margin_top="4px", color=MUTED)),
                     padding="12px 14px", background=ACCENT_SOFT, border_radius="10px", width="100%",
                 ),
+                rx.cond(State.detail_forecast.length() > 0, detail_section(
+                    "🌤 Forecast for your trip",
+                    rx.grid(
+                        rx.foreach(State.detail_forecast, lambda day: rx.vstack(
+                            small_text(day["day"], font_weight="700"),
+                            rx.text(day["temps"], font_size="0.9rem", font_weight="700"),
+                            small_text(day["text"]),
+                            rx.cond(day["rain"] != "", small_text(day["rain"])),
+                            spacing="0", align="start", padding="8px 10px", background=BG, border_radius="8px",
+                        )),
+                        columns="repeat(auto-fill, minmax(110px, 1fr))", gap="8px", width="100%",
+                    ),
+                    small_text("Forecast from Open-Meteo, refreshed hourly."),
+                )),
                 rx.grid(
                     rx.foreach(State.detail_facts, lambda fact: rx.vstack(
                         small_text(fact["label"], font_weight="700"),
@@ -830,8 +916,11 @@ def detail_dialog() -> rx.Component:
                     small_text("Bars = seasonal match · Brown dots = crowds · Outlined = your trip."),
                     small_text("Busiest: " + p["busy"] + "."),
                 ),
-                detail_section("🎯 Things to do", text_list(State.detail_things),
-                               rx.flex(rx.foreach(State.detail_activities, badge), wrap="wrap", gap="6px")),
+                rx.cond(
+                    (State.detail_things.length() > 0) | (State.detail_activities.length() > 0),
+                    detail_section("🎯 Things to do", text_list(State.detail_things),
+                                   rx.flex(rx.foreach(State.detail_activities, badge), wrap="wrap", gap="6px")),
+                ),
                 detail_section("👀 What to expect", text_list(State.detail_expectations)),
                 detail_section("🎒 Packing list for your dates", text_list(State.detail_packing, checklist=True)),
                 detail_section(
@@ -842,14 +931,14 @@ def detail_dialog() -> rx.Component:
                 ),
                 detail_section("🤫 For a quieter visit", rx.text(p["quiet_time"], font_size="0.9rem")),
                 detail_section("🌍 First time in Utah?", rx.text(p["tip"], font_size="0.9rem")),
-                detail_section(
+                rx.cond(State.detail_reviews.length() > 0, detail_section(
                     "💬 Reviews", small_text("Sample reviews for the prototype"),
                     rx.foreach(State.detail_reviews, lambda review: rx.box(
                         rx.text(review["stars"], color="#7A6A2E", letter_spacing="1px", aria_label=review["label"]),
                         rx.text("“", review["text"], "”", font_size="0.9rem", margin="4px 0"),
                         small_text(review["who"]), background=BG, padding="10px 12px", border_radius="10px", width="100%",
                     )),
-                ),
+                )),
                 compare_button(p, width="100%"),
                 small_text("Prototype with sample data. Confirm current conditions, fees and accessibility with the destination before you go."),
                 spacing="5", align="start", padding="18px", width="100%",
@@ -995,5 +1084,5 @@ app = rx.App(
 )
 # This design is intentionally light, including when an older local session
 # saved a dark/system theme before the mockup was ported.
-app.add_page(index, title="Utah Wayfinder")
-app.add_page(compare_page, route="/compare", title="Compare Utah destinations")
+app.add_page(index, title="Utah Wayfinder", on_load=State.refresh_weather)
+app.add_page(compare_page, route="/compare", title="Compare Utah destinations", on_load=State.refresh_weather)

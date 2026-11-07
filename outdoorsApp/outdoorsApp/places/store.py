@@ -54,6 +54,28 @@ CREATE TABLE IF NOT EXISTS google_ids (
     updated_at      TEXT NOT NULL
 );
 
+-- Weather tables are keyed by place id and kept apart from places for the same reason.
+-- Monthly averages for each place (index 0 = January), from a year of daily records.
+CREATE TABLE IF NOT EXISTS climate (
+    place_id     TEXT PRIMARY KEY,
+    elevation_ft REAL,
+    highs_f      TEXT NOT NULL,
+    lows_f       TEXT NOT NULL,
+    period       TEXT NOT NULL,
+    source       TEXT NOT NULL,
+    updated_at   TEXT NOT NULL
+);
+
+-- Latest forecast per place. days = [{date, high_f, low_f, code, precip_pct}], local dates.
+CREATE TABLE IF NOT EXISTS forecasts (
+    place_id       TEXT PRIMARY KEY,
+    fetched_at     TEXT NOT NULL,
+    local_time     TEXT NOT NULL,
+    current_temp_f REAL,
+    current_code   INTEGER,
+    days           TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS seed_runs (
     source      TEXT PRIMARY KEY,
     count       INTEGER NOT NULL,
@@ -174,6 +196,7 @@ def find_places(
     restrooms: bool | None = None,
     source: str | Iterable[str] | None = None,
     limit: int | None = 50,
+    include_raw: bool = False,
     conn: sqlite3.Connection | None = None,
 ) -> list[Place]:
     """Search the cache. Every argument is optional and they combine with AND.
@@ -186,7 +209,7 @@ def find_places(
     wheelchair / restrooms   ``True`` = only places known to have it
     limit       max results (``None`` for all)
 
-    Raw API records aren't loaded here; use ``get_place`` for those.
+    include_raw also load each place's raw API record (slower; off by default)
     """
     conn = conn or connect()
     where, params = [], []
@@ -219,7 +242,7 @@ def find_places(
         where.append("p.lat BETWEEN ? AND ? AND p.lon BETWEEN ? AND ?")
         params += [lat - dlat, lat + dlat, lon - dlon, lon + dlon]
 
-    cols = [c for c in _COLUMNS if c != "raw"]
+    cols = [c for c in _COLUMNS if include_raw or c != "raw"]
     sql = _SELECT.format(cols=", p.".join(cols))
     if where:
         sql += " WHERE " + " AND ".join(where)
@@ -238,6 +261,67 @@ def find_places(
         if limit is not None:
             places = places[:limit]
     return places
+
+
+# --- Weather -----------------------------------------------------------------
+
+def save_climate(conn: sqlite3.Connection, rows: dict[str, dict]) -> None:
+    """rows: {place_id: {elevation_ft, highs_f[12], lows_f[12], period, source}}"""
+    now = _now()
+    with conn:
+        conn.executemany(
+            "INSERT INTO climate (place_id, elevation_ft, highs_f, lows_f, period, source, updated_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(place_id) DO UPDATE SET "
+            "elevation_ft = excluded.elevation_ft, highs_f = excluded.highs_f, lows_f = excluded.lows_f, "
+            "period = excluded.period, source = excluded.source, updated_at = excluded.updated_at",
+            [(pid, r.get("elevation_ft"), json.dumps(r["highs_f"]), json.dumps(r["lows_f"]),
+              r["period"], r["source"], now) for pid, r in rows.items()],
+        )
+
+
+def load_climate(conn: sqlite3.Connection | None = None) -> dict[str, dict]:
+    conn = conn or connect()
+    return {
+        row["place_id"]: {"elevation_ft": row["elevation_ft"], "highs_f": json.loads(row["highs_f"]),
+                          "lows_f": json.loads(row["lows_f"]), "period": row["period"], "source": row["source"]}
+        for row in conn.execute("SELECT * FROM climate")
+    }
+
+
+def save_forecasts(conn: sqlite3.Connection, rows: dict[str, dict]) -> None:
+    """rows: {place_id: {local_time, current_temp_f, current_code, days[...]}}"""
+    now = _now()
+    with conn:
+        conn.executemany(
+            "INSERT INTO forecasts (place_id, fetched_at, local_time, current_temp_f, current_code, days) "
+            "VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(place_id) DO UPDATE SET "
+            "fetched_at = excluded.fetched_at, local_time = excluded.local_time, "
+            "current_temp_f = excluded.current_temp_f, current_code = excluded.current_code, days = excluded.days",
+            [(pid, now, r["local_time"], r.get("current_temp_f"), r.get("current_code"), json.dumps(r["days"]))
+             for pid, r in rows.items()],
+        )
+
+
+def load_forecasts(conn: sqlite3.Connection | None = None) -> dict[str, dict]:
+    conn = conn or connect()
+    return {
+        row["place_id"]: {"fetched_at": row["fetched_at"], "local_time": row["local_time"],
+                          "current_temp_f": row["current_temp_f"], "current_code": row["current_code"],
+                          "days": json.loads(row["days"])}
+        for row in conn.execute("SELECT * FROM forecasts")
+    }
+
+
+def oldest_forecast(conn: sqlite3.Connection | None = None) -> datetime | None:
+    """When the stalest forecast was fetched (None if any place has no forecast)."""
+    conn = conn or connect()
+    missing = conn.execute(
+        "SELECT COUNT(*) FROM places p LEFT JOIN forecasts f ON f.place_id = p.id WHERE f.place_id IS NULL"
+    ).fetchone()[0]
+    oldest = conn.execute("SELECT MIN(fetched_at) FROM forecasts").fetchone()[0]
+    if missing or not oldest:
+        return None
+    return datetime.fromisoformat(oldest)
 
 
 def stats(conn: sqlite3.Connection | None = None) -> dict:

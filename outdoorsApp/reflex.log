@@ -1,0 +1,7 @@
+Warning: Windows Subsystem for Linux (WSL) is recommended for improving initial
+install times.
+───────────────────────────── Starting Reflex App ─────────────────────────────
+Compiling: ---------------------------------------- 100% 18/17 0:00:00
+Creating Production Build:  ---------------------------------- 100% 4/4 0:00:05
+───────────────────────────────── App Running ─────────────────────────────────
+App running at: http://0.0.0.0:3000/

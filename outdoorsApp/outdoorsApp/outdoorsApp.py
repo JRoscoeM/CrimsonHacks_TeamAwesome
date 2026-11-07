@@ -7,6 +7,7 @@ independent local fixtures; all interactions below use Reflex state and events.
 import asyncio
 import json
 from datetime import date, timedelta
+from uuid import uuid4
 
 import reflex as rx
 from reflex.style import set_color_mode
@@ -19,6 +20,7 @@ from .place_data import (
 )
 from .place_data import drive_for, find_location, load_drives, load_google, prefetch_google
 from .places.http import SourceError
+from .places import autocomplete
 from .place_data import refresh_weather as refresh_saved_forecasts
 
 MAX_RESULTS = 60  # cards/pins rendered at once; the caption still counts every match
@@ -59,8 +61,17 @@ class State(rx.State):
     origin_name: str = "Salt Lake City, UT"
     origin_lat: float = 40.7608
     origin_lon: float = -111.891
-    location_note: str = 'Type a city, address or landmark and press Enter, or tap "Near me".'
+    location_note: str = "Results currently start from Salt Lake City, UT."
+    location_suggestions_open: bool = False
+    address_predictions: list[dict[str, str]] = []
+    suggestions_loading: bool = False
+    suggestions_note: str = ""
+    active_suggestion: int = -1
+    _location_revision: int = 0
+    _address_session: str = ""
+    _selected_address_id: str = ""
     locating: bool = False
+    geolocating: bool = False
     filters_open: bool = False
     detail_open: bool = False
     detail_id: str = "zion"
@@ -101,7 +112,127 @@ class State(rx.State):
 
     @rx.event
     def set_location_text(self, value: str):
-        self.location_text = value
+        self.location_text = value[:200]
+        self.locating = False
+        self.geolocating = False
+        self._location_revision += 1
+        self._selected_address_id = ""
+        self.address_predictions = []
+        self.active_suggestion = -1
+        self.location_suggestions_open = True
+        return self._request_suggestions()
+
+    def _request_suggestions(self):
+        self.suggestions_loading = False
+        self.suggestions_note = ""
+        if len(self.location_text.strip()) < 3 or self.location_text == self.origin_name:
+            if not self.location_text.strip():
+                self._address_session = ""
+            return
+        if not autocomplete.enabled():
+            self.suggestions_note = "Live suggestions unavailable. Press Enter to search this address."
+            return
+        if not self._address_session:
+            self._address_session = str(uuid4())
+        self.suggestions_loading = True
+        return State.fetch_address_suggestions(self._location_revision)
+
+    @rx.event(background=True)
+    async def fetch_address_suggestions(self, revision: int):
+        # Debounce on the server, then check again after I/O to discard stale replies.
+        await asyncio.sleep(0.35)
+        async with self:
+            if revision != self._location_revision or not self.location_suggestions_open:
+                return
+            query, token = self.location_text, self._address_session
+        try:
+            predictions = await asyncio.to_thread(autocomplete.suggest, query, token)
+            note = "" if predictions else "No address matches. Try more detail or press Enter to search."
+        except (SourceError, ValueError):
+            predictions, note = [], "Live suggestions unavailable. Press Enter to search this address."
+        async with self:
+            if revision != self._location_revision or not self.location_suggestions_open:
+                return
+            self.address_predictions = predictions
+            self.active_suggestion = -1
+            self.suggestions_loading = False
+            self.suggestions_note = note
+
+    @rx.event
+    def open_location_suggestions(self):
+        self.locating = False
+        self.geolocating = False
+        self._selected_address_id = ""
+        self.location_suggestions_open = True
+        self._location_revision += 1
+        return self._request_suggestions()
+
+    @rx.event
+    def close_location_suggestions(self):
+        if self.location_suggestions_open:
+            self._location_revision += 1
+        self.location_suggestions_open = False
+        self.suggestions_loading = False
+        self.active_suggestion = -1
+
+    @rx.event
+    def choose_location_suggestion(self, name: str):
+        """Apply a preset-city suggestion without a separate geocoding request."""
+        coordinates = CITIES.get(name)
+        if coordinates is None:
+            return
+        self._location_revision += 1
+        self._address_session = ""
+        self.address_predictions = []
+        self.suggestions_loading = False
+        self.locating = False
+        self.geolocating = False
+        self.location_text = self.origin_name = name
+        self.origin_lat, self.origin_lon = coordinates
+        self.location_note = "Drive times are by road and approximate."
+        self.location_suggestions_open = False
+        return State.load_drives
+
+    @rx.event
+    def choose_address_option(self, option_id: str):
+        option = next((item for item in self.location_options if item["id"] == option_id), None)
+        if option is None:
+            return
+        if option["source"] == "city":
+            return self.choose_location_suggestion(option["label"])
+        self._location_revision += 1
+        self._selected_address_id = option_id
+        self.location_text = option["label"]
+        self.location_suggestions_open = False
+        self.suggestions_loading = False
+        self.locating = True
+        self.location_note = "Finding this address…"
+        return State.apply_address_suggestion(self._location_revision)
+
+    @rx.event(background=True)
+    async def apply_address_suggestion(self, revision: int):
+        async with self:
+            if revision != self._location_revision or not self._selected_address_id:
+                return
+            place_id, token = self._selected_address_id, self._address_session
+            self._selected_address_id = ""  # consume once, including on failure
+            self._address_session = ""
+        try:
+            found = await asyncio.to_thread(autocomplete.resolve, place_id, token)
+        except (SourceError, ValueError):
+            found = None
+        async with self:
+            if revision != self._location_revision:
+                return
+            self.locating = False
+            self.address_predictions = []
+            if found is None:
+                self.location_note = f"Couldn't load that address. Press Enter to retry. Still using {self.origin_name}."
+                return
+            self.origin_name = self.location_text = found["label"]
+            self.origin_lat, self.origin_lon = found["lat"], found["lon"]
+            self.location_note = "Using the selected address. Drive times are by road and approximate."
+        yield State.load_drives
 
     @rx.event
     def set_arrive(self, value: str):
@@ -195,6 +326,11 @@ class State(rx.State):
     @rx.event
     def resolve_location(self, value: str):
         """Preset cities resolve instantly; anything else is looked up as an address."""
+        self._location_revision += 1
+        self._address_session = ""
+        self.address_predictions = []
+        self.suggestions_loading = False
+        self.location_suggestions_open = False
         text = value.strip()
         if not text or text == self.origin_name:
             self.location_text = self.origin_name
@@ -208,15 +344,30 @@ class State(rx.State):
                 return State.load_drives
         self.locating = True
         self.location_note = f"Searching for “{text}”… Still using {self.origin_name}."
-        return State.search_location(text)
+        return State.search_location(text, self._location_revision)
 
     @rx.event
     def location_key(self, key: str):
+        if key in {"ArrowDown", "ArrowUp"}:
+            self.location_suggestions_open = True
+            count = len(self.location_options)
+            if count:
+                if self.active_suggestion < 0:
+                    self.active_suggestion = 0 if key == "ArrowDown" else count - 1
+                else:
+                    self.active_suggestion = (self.active_suggestion + (1 if key == "ArrowDown" else -1)) % count
+            return
+        if key == "Escape":
+            self.close_location_suggestions()
+            return
         if key == "Enter":
+            if self.location_suggestions_open and 0 <= self.active_suggestion < len(self.location_options):
+                return self.choose_address_option(self.location_options[self.active_suggestion]["id"])
+            self.location_suggestions_open = False
             return State.resolve_location(self.location_text)
 
     @rx.event(background=True)
-    async def search_location(self, query: str):
+    async def search_location(self, query: str, revision: int):
         """Geocode a typed address/town/landmark (free OpenStreetMap search), then load drive times."""
         try:
             found = await asyncio.to_thread(find_location, query)
@@ -224,9 +375,9 @@ class State(rx.State):
         except SourceError:
             found, error = None, "Couldn't reach the address search"
         async with self:
-            self.locating = False
-            if self.location_text.strip() != query:  # the user typed something else meanwhile
+            if revision != self._location_revision or self.location_text.strip() != query:
                 return
+            self.locating = False
             if not found:
                 reason = error or f"Couldn't find “{query}”. Try a town, address or landmark"
                 self.location_note = f"{reason}. Still using {self.origin_name}."
@@ -244,7 +395,12 @@ class State(rx.State):
 
     @rx.event
     def locate(self):
+        self.close_location_suggestions()
+        self._location_revision += 1
+        self._address_session = ""
+        self.address_predictions = []
         self.locating = True
+        self.geolocating = True
         self.location_note = "Finding your location…"
         return rx.call_script(
             """new Promise(resolve => {
@@ -263,6 +419,7 @@ class State(rx.State):
     @rx.event
     def receive_location(self, result: dict):
         self.locating = False
+        self.geolocating = False
         if not isinstance(result, dict) or "error" in result:
             self.location_note = (result.get("error") if isinstance(result, dict) else None) or "Location unavailable. Choose a city."
             return
@@ -282,6 +439,24 @@ class State(rx.State):
     @rx.var
     def favorites(self) -> list[str]:
         return saved_ids(self.favorite_storage)
+
+    @rx.var
+    def location_suggestions(self) -> list[str]:
+        """Preset cities matching the search field, capped for a compact menu."""
+        query = self.location_text.strip().lower()
+        return [name for name in CITIES if not query or self.location_text == self.origin_name or query in name.lower()][:6]
+
+    @rx.var
+    def location_options(self) -> list[dict[str, str]]:
+        if self.address_predictions:
+            return self.address_predictions
+        return [{"id": name, "label": name, "source": "city"} for name in self.location_suggestions]
+
+    @rx.var
+    def active_location_option(self) -> str:
+        if self.location_suggestions_open and 0 <= self.active_suggestion < len(self.location_options):
+            return f"origin-option-{self.active_suggestion}"
+        return ""
 
     @rx.var
     def date_warning(self) -> str:
@@ -573,30 +748,92 @@ def date_field(label: str, field_id: str, value, handler) -> rx.Component:
     )
 
 
+def location_input() -> rx.Component:
+    """Accessible combobox; keep focus in the input during pointer selection."""
+    return rx.box(
+        rx.el.input(
+            id="origin", value=State.location_text, on_change=State.set_location_text,
+            on_focus=State.open_location_suggestions, on_click=State.open_location_suggestions,
+            on_blur=State.close_location_suggestions,
+            on_key_down=State.location_key, role="combobox", aria_autocomplete="list",
+            aria_expanded=State.location_suggestions_open, aria_controls="origin-suggestions",
+            aria_activedescendant=State.active_location_option, aria_describedby="origin-help",
+            placeholder="City, address or landmark", enter_key_hint="search", max_length=200,
+            auto_complete="off", width="100%", min_width="0", **CONTROL,
+            on_mount=rx.call_script("""(() => {
+                const input = document.getElementById('origin');
+                if (!input || input.dataset.comboboxKeys) return;
+                input.dataset.comboboxKeys = 'true';
+                input.addEventListener('keydown', event => {
+                    if (event.isComposing) { event.stopPropagation(); return; }
+                    if (['ArrowDown', 'ArrowUp', 'Enter'].includes(event.key)) event.preventDefault();
+                });
+            })()"""),
+        ),
+        rx.cond(
+            State.location_suggestions_open,
+            rx.box(
+                rx.box(
+                    rx.foreach(State.location_options, lambda option, i: rx.el.button(
+                        option["label"], id="origin-option-" + i.to_string(), role="option",
+                        type="button", tab_index=-1, aria_selected=State.active_suggestion == i,
+                        on_mouse_down=rx.prevent_default,
+                        on_click=State.choose_address_option(option["id"]),
+                        width="100%", min_height="44px", text_align="left",
+                        background=rx.cond(State.active_suggestion == i, ACCENT_SOFT, CARD), color=INK,
+                        border="0", padding="10px 12px", cursor="pointer", font_size="0.9rem",
+                        _hover={"background": ACCENT_SOFT},
+                    )),
+                    id="origin-suggestions", role="listbox", aria_label="Suggested locations",
+                ),
+                rx.cond(State.suggestions_loading,
+                        rx.text("Finding addresses…", role="status", padding="10px 12px", color=MUTED, font_size="0.8rem")),
+                rx.cond(State.suggestions_note != "",
+                        rx.text(State.suggestions_note, role="status", padding="10px 12px", color=MUTED, font_size="0.8rem")),
+                rx.cond(State.address_predictions.length() > 0,
+                        rx.text("Google Maps", translate="no", color="#5E5E5E", font_size="12px",
+                                font_weight="400", white_space="nowrap", padding="8px 12px", text_align="right",
+                                border_top=f"1px solid {LINE}")),
+                position="absolute", top="calc(100% + 4px)", left="0", right="0", z_index="10",
+                background=CARD, border=f"1px solid {LINE}", border_radius="10px", overflow="hidden",
+                box_shadow=SHADOW,
+            ),
+        ),
+        position="relative", flex="1", min_width="0", width="100%",
+    )
+
+
 def header() -> rx.Component:
     return rx.el.header(
         rx.vstack(
             rx.flex(brand(), units(), justify="between", align="center", gap="14px", wrap="wrap", width="100%"),
             rx.grid(
                 rx.vstack(
-                    rx.el.label("Starting from", html_for="origin", font_size="0.8rem", font_weight="700", color=MUTED),
-                    rx.hstack(
-                        rx.el.input(
-                            id="origin", list="cities", value=State.location_text,
-                            on_change=State.set_location_text, on_blur=State.resolve_location,
-                            on_key_down=State.location_key,
-                            placeholder="City, address or landmark", enter_key_hint="search",
-                            auto_complete="off", width="100%", min_width="0", **CONTROL,
-                        ),
-                        rx.el.datalist(*[rx.el.option(value=name) for name in CITIES], id="cities"),
+                    rx.el.label("Starting point", html_for="origin", font_size="0.8rem", font_weight="700", color=MUTED),
+                    location_input(),
+                    small_text("Type a city, address or landmark. Choose a suggestion or press Enter to search.", id="origin-help"),
+                    rx.flex(
                         rx.button(
-                            rx.cond(State.locating, "Locating…", "Near me"), on_click=State.locate,
-                            disabled=State.locating, background=ACCENT_SOFT, color=ACCENT,
-                            border=f"1px solid {ACCENT}", white_space="nowrap", **BUTTON,
+                            rx.icon("locate", size=17),
+                            rx.cond(State.geolocating, "Getting location…", "Use my current location"),
+                            on_click=State.locate,
+                            disabled=State.locating,
+                            aria_label="Use my current location as the starting point",
+                            background=ACCENT_SOFT,
+                            color=ACCENT,
+                            border=f"1px solid {ACCENT}",
+                            white_space="nowrap",
+                            flex_shrink="0",
+                            **BUTTON,
                         ),
-                        spacing="2", width="100%",
+                        small_text("Uses your device location to update nearby results and drive times."),
+                        align="center",
+                        gap="10px",
+                        wrap="wrap",
+                        width="100%",
+                        margin_top="4px",
                     ),
-                    small_text(State.location_note, role="status"),
+                    small_text(State.location_note, role="status", aria_live="polite", id="origin-status"),
                     rx.flex(
                         rx.el.label("Search within", html_for="radius", font_size="0.8rem", font_weight="700", color=MUTED),
                         select_control(

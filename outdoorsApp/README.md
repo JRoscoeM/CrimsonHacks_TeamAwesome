@@ -48,9 +48,9 @@ It downloads every source that has a key and skips the rest. **Every step it run
 
 The app also refreshes forecasts by itself, in the background, when the saved ones are more than an hour old.
 
-### Google: off by default, because it can be billed
+### Google ratings: off by default, because they can be billed
 
-Ratings and reviews in the app are the **hard-coded sample ones**. Cache places show "No rating yet". Nothing calls Google unless someone explicitly opts in:
+Ratings and reviews in the app are the **hard-coded sample ones**. Cache places show "No rating yet". Ratings require a separate opt-in from address autocomplete:
 
 - **`google_ids` seed step** (matches places to Google place IDs). It never runs by default, and even `--only google_ids` refuses to start without `--allow-billed`.
 - **`GOOGLE_RATINGS` environment variable** for the app. The default is `off`. `details` looks up a place's Google rating when it's opened. `all` looks up every place on startup, about 260 billed calls per start. Both are capped per run by `GOOGLE_DETAILS_BUDGET` (default 200).
@@ -59,7 +59,11 @@ Ratings and reviews in the app are the **hard-coded sample ones**. Cache places 
 
 ### Address search
 
-The "Starting from" box takes any city, address or landmark. Press Enter, or leave the field, to search. Lookups use Nominatim, OpenStreetMap's free geocoder (no key, no billing). Each query is saved in `data/places.db`, so it's only looked up once, and drive times from the new spot are fetched from OSRM and saved too. Nominatim's usage policy doesn't allow search-as-you-type on its public server, so the list of suggestions only shows the preset cities.
+The "Starting from" box shows preset cities on focus and live Google Places address/landmark suggestions after three characters and a 350 ms pause. Click a suggestion, or use Up/Down and Enter. Escape or leaving the field dismisses suggestions. Selecting an address resolves its coordinates and updates drive times through the existing OSRM workflow.
+
+Live suggestions use the server-side `GOOGLE_MAPS_API_KEY`. Enable **Places API (New)** and billing in its Google Cloud project. Restrict the key to that API and, in production, the server's outbound IP where practical (browser-referrer restrictions do not work for these server requests). `GOOGLE_AUTOCOMPLETE=off` disables live suggestions; the default is on when a key is configured. Autocomplete and the selected address's Place Details call can be billed, independently of `GOOGLE_RATINGS`. Set quotas in Google Cloud for deployment traffic.
+
+Each editing session uses a token shared with the selected address's details request; only address and coordinates are requested. Predictions/addresses are held in the user's session, not written to the places database. Failed or stale responses never replace the current origin. Without a working Google key, preset cities remain available and Enter explicitly searches via the existing Nominatim geocoder. Nominatim is never called while typing. Its explicit searches are cached in `data/places.db` as before.
 
 To refresh only some sources, run `python -m outdoorsApp.places.seed --only osm,ridb`. If a download fails, that source keeps its old data.
 

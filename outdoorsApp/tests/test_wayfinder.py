@@ -123,6 +123,14 @@ class TripPlanningTests(unittest.TestCase):
         self.assertEqual(self.state.origin_name, "Your location")
         self.assertEqual(self.state.origin_lat, 38.5733)
 
+    def test_city_suggestions_can_be_selected(self):
+        self.state.set_location_text("mo")
+        self.assertEqual(self.state.location_suggestions, ["Moab, UT"])
+        self.assertTrue(self.state.location_suggestions_open)
+        self.state.choose_location_suggestion("Moab, UT")
+        self.assertEqual(self.state.origin_name, "Moab, UT")
+        self.assertFalse(self.state.location_suggestions_open)
+
 
 if __name__ == "__main__":
     unittest.main()

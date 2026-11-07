@@ -76,6 +76,24 @@ CREATE TABLE IF NOT EXISTS forecasts (
     days           TEXT NOT NULL
 );
 
+-- NPS monthly recreation visitors per park code (index 0 = January), averaged over `period`.
+CREATE TABLE IF NOT EXISTS visitation (
+    park_code  TEXT PRIMARY KEY,
+    monthly    TEXT NOT NULL,
+    period     TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+-- Road drive time from an origin (lat/lon rounded to 2 decimals, "40.76,-111.89") to a place.
+CREATE TABLE IF NOT EXISTS drive_times (
+    origin_key TEXT NOT NULL,
+    place_id   TEXT NOT NULL,
+    minutes    REAL NOT NULL,
+    miles      REAL NOT NULL,
+    fetched_at TEXT NOT NULL,
+    PRIMARY KEY (origin_key, place_id)
+);
+
 CREATE TABLE IF NOT EXISTS seed_runs (
     source      TEXT PRIMARY KEY,
     count       INTEGER NOT NULL,
@@ -322,6 +340,42 @@ def oldest_forecast(conn: sqlite3.Connection | None = None) -> datetime | None:
     if missing or not oldest:
         return None
     return datetime.fromisoformat(oldest)
+
+
+# --- Visitation and drive times ----------------------------------------------
+
+def save_visitation(conn: sqlite3.Connection, rows: dict[str, list[float]], period: str) -> None:
+    now = _now()
+    with conn:
+        conn.executemany(
+            "INSERT INTO visitation (park_code, monthly, period, updated_at) VALUES (?, ?, ?, ?) "
+            "ON CONFLICT(park_code) DO UPDATE SET monthly = excluded.monthly, period = excluded.period, "
+            "updated_at = excluded.updated_at",
+            [(code.lower(), json.dumps(monthly), period, now) for code, monthly in rows.items()],
+        )
+
+
+def load_visitation(conn: sqlite3.Connection | None = None) -> dict[str, dict]:
+    conn = conn or connect()
+    return {row["park_code"]: {"monthly": json.loads(row["monthly"]), "period": row["period"]}
+            for row in conn.execute("SELECT * FROM visitation")}
+
+
+def save_drive_times(conn: sqlite3.Connection, origin_key: str, rows: dict[str, tuple[float, float]]) -> None:
+    """rows: {place_id: (minutes, miles)}"""
+    now = _now()
+    with conn:
+        conn.executemany(
+            "INSERT INTO drive_times (origin_key, place_id, minutes, miles, fetched_at) VALUES (?, ?, ?, ?, ?) "
+            "ON CONFLICT(origin_key, place_id) DO UPDATE SET minutes = excluded.minutes, "
+            "miles = excluded.miles, fetched_at = excluded.fetched_at",
+            [(origin_key, pid, minutes, miles, now) for pid, (minutes, miles) in rows.items()],
+        )
+
+
+def load_drive_times(conn: sqlite3.Connection, origin_key: str) -> dict[str, tuple[float, float]]:
+    return {row["place_id"]: (row["minutes"], row["miles"]) for row in conn.execute(
+        "SELECT place_id, minutes, miles FROM drive_times WHERE origin_key = ?", (origin_key,))}
 
 
 def stats(conn: sqlite3.Connection | None = None) -> dict:

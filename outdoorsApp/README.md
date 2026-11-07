@@ -33,7 +33,7 @@ The app reads parks, campgrounds, and ski resorts from a local SQLite file, `dat
 python -m outdoorsApp.places.seed
 ```
 
-It downloads every source that has a key and skips the rest:
+It downloads every source that has a key and skips the rest. **Every step it runs by default uses free APIs, so running it on any machine can't cause a bill.**
 
 | Source | What | Key |
 |---|---|---|
@@ -43,8 +43,23 @@ It downloads every source that has a key and skips the rest:
 | `osm` | State parks and ski resorts (OpenStreetMap) | none |
 | `climate` | Each place's elevation and average high/low per month, from last year's weather records (Open-Meteo). Only fetches places that don't have it yet. The first run takes a few minutes because it's paced to stay under Open-Meteo's free limits. | none |
 | `forecast` | Current conditions plus a 16-day forecast for every place (Open-Meteo) | none |
+| `visitation` | Monthly NPS visitor counts (last two full years), turned into crowd levels for NPS parks and their campgrounds | none |
+| `drives` | Road drive times from the app's starting cities (OSRM, the free routing service built on OpenStreetMap). Other origins, like a searched address or "Near me", are fetched once by the app and saved. | none |
 
 The app also refreshes forecasts by itself, in the background, when the saved ones are more than an hour old.
+
+### Google: off by default, because it can be billed
+
+Ratings and reviews in the app are the **hard-coded sample ones**. Cache places show "No rating yet". Nothing calls Google unless someone explicitly opts in:
+
+- **`google_ids` seed step** (matches places to Google place IDs). It never runs by default, and even `--only google_ids` refuses to start without `--allow-billed`.
+- **`GOOGLE_RATINGS` environment variable** for the app. The default is `off`. `details` looks up a place's Google rating when it's opened. `all` looks up every place on startup, about 260 billed calls per start. Both are capped per run by `GOOGLE_DETAILS_BUDGET` (default 200).
+
+`api.py` in the project root is a separate example script that calls Google Places when run directly (`python api.py`). The app and the seed never import it.
+
+### Address search
+
+The "Starting from" box takes any city, address or landmark. Press Enter, or leave the field, to search. Lookups use Nominatim, OpenStreetMap's free geocoder (no key, no billing). Each query is saved in `data/places.db`, so it's only looked up once, and drive times from the new spot are fetched from OSRM and saved too. Nominatim's usage policy doesn't allow search-as-you-type on its public server, so the list of suggestions only shows the preset cities.
 
 To refresh only some sources, run `python -m outdoorsApp.places.seed --only osm,ridb`. If a download fails, that source keeps its old data.
 
@@ -84,7 +99,7 @@ python -m outdoorsApp.places --id nps:zion --raw                # one place, ful
 
 ### Things to know
 
-- **Distances are straight-line miles.** Drive times will come from the Google Routes API.
+- **Distances in `find_places` are straight-line miles.** The app itself uses road drive times from the `drives` step. OSRM's public server runs about 20% slow on Utah highways, so its times are scaled by 0.8 (`DURATION_FACTOR` in `places/travel.py`). Places without a saved drive time show "(est.)".
 - **Don't store Google ratings or reviews in the cache.** Google's terms don't allow it. Fetch them when a place is shown. Storing Google place IDs is allowed: use `set_google_place_id()`.
 - **OSM places have no activity tags yet**, so state parks and ski resorts won't match an activity filter.
 
@@ -93,7 +108,7 @@ python -m outdoorsApp.places --id nps:zion --raw                # one place, ful
 `outdoorsApp/place_data.py` builds the app's `PLACES` list from two sources:
 
 - **Curated samples** (`sample_places.json`). These keep all their hand-written details. When the cache has the same place, the sample also gets the cache's real photo and official website.
-- **Every other place in the cache**, converted to the same format. Data we don't have yet gets an honest default: "No rating yet", "Check with the site" for cost, and elevation "Not listed". Seasonal scores, crowds and temperatures are borrowed from the nearest similar curated place, and the detail view says so.
+- **Every other place in the cache**, converted to the same format. Seasonal scores are calculated from each place's real monthly temperatures, using a curve fitted to the curated places' own scores. Crowd levels come from NPS visitor counts for NPS parks and their campgrounds. Other places have no public visitor data, so their crowd levels are borrowed from the nearest similar curated place, and the detail view says so. Data we don't have gets an honest default, such as "Check with the site" for cost.
 
 **Weather**
 

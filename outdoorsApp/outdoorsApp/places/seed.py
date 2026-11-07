@@ -2,8 +2,12 @@
 
 Run from the project folder (the one with rxconfig.py):
 
-    py -m outdoorsApp.places.seed                 # every source that has a key
+    py -m outdoorsApp.places.seed                 # every free source that has a key
     py -m outdoorsApp.places.seed --only osm,ridb # just these
+
+Every default step uses free APIs, so running the seed on any machine can't
+cause a bill. The only billable step, google_ids, is never part of the default
+run and refuses to start without --allow-billed.
 
 Sources and the key each needs (see .env.example):
     nps              National/state-run NPS units in Utah   NPS_API_KEY
@@ -13,6 +17,10 @@ Sources and the key each needs (see .env.example):
     climate          Elevation + monthly avg temps (Open-Meteo)  none; only for
                      places that don't have it yet, takes a few minutes
     forecast         16-day forecast + current conditions (Open-Meteo)  none
+    visitation       Monthly NPS visitor counts, for crowd levels  none
+    drives           Road drive times from the app's starting cities (OSRM)  none
+    google_ids       BILLABLE, opt-in only: match places to Google place IDs.
+                     Needs --only google_ids --allow-billed  GOOGLE_MAPS_API_KEY
 
 A source is only replaced after it downloads successfully, so a failed run
 leaves the old data in place. Re-run whenever you want fresh data. The app
@@ -140,16 +148,40 @@ SOURCES = {
 }
 
 
-WEATHER_STEPS = ("climate", "forecast")  # run after the place sources
+# Steps that add data to places already in the cache; they run after the place sources.
+# All free. BILLED_STEPS are never run by default.
+WEATHER_STEPS = ("climate", "forecast", "visitation", "drives")
+BILLED_STEPS = ("google_ids",)
 
 
-def _weather_step(step: str, conn) -> int | str:
+def _weather_step(step: str, conn, allow_billed: bool = False) -> int | str:
+    from . import google, travel, visitation
+
+    if step in BILLED_STEPS and not allow_billed:
+        print(f"- {step}: skipped (can be billed by Google; add --allow-billed to run it)")
+        return "skipped"
     print(f"- {step}: downloading...")
     try:
         if step == "climate":
             count = weather.update_climate(conn, progress=lambda msg: print(f"  climate: {msg}"))
-        else:
+        elif step == "forecast":
             count = weather.refresh_forecasts(conn, max_age_minutes=0)
+        elif step == "visitation":
+            count = visitation.update_visitation(conn)
+        elif step == "drives":
+            from ..place_data import CITIES  # the app's starting cities
+            for city, (lat, lon) in CITIES.items():
+                travel.ensure_drive_times(lat, lon, conn)
+                time.sleep(1.1)
+            count = len(CITIES)
+        else:
+            if not keys.GOOGLE_MAPS_API_KEY:
+                print(f"- {step}: skipped (GOOGLE_MAPS_API_KEY isn't set in .env)")
+                return "skipped"
+            matched, tried = google.match_place_ids(conn, progress=lambda msg: print(f"  google_ids: {msg}"),
+                                                    allow_billed=True)
+            print(f"  google_ids: matched {matched} of {tried} places that didn't have an ID yet")
+            count = matched
     except SourceError as error:
         print(f"- {step}: FAILED, kept existing data ({error})")
         return "failed"
@@ -157,12 +189,12 @@ def _weather_step(step: str, conn) -> int | str:
     return count
 
 
-def seed(only: list[str] | None = None, db_path: str | None = None) -> dict:
+def seed(only: list[str] | None = None, db_path: str | None = None, allow_billed: bool = False) -> dict:
     conn = connect(db_path)
     results = {}
-    for source in only or [*SOURCES, *WEATHER_STEPS]:
-        if source in WEATHER_STEPS:
-            results[source] = _weather_step(source, conn)
+    for source in only or [*SOURCES, *WEATHER_STEPS]:  # billed steps only when named in --only
+        if source in WEATHER_STEPS or source in BILLED_STEPS:
+            results[source] = _weather_step(source, conn, allow_billed=allow_billed)
             continue
         fetch, key_name = SOURCES[source]
         if key_name and not getattr(keys, key_name):
@@ -194,15 +226,17 @@ def seed(only: list[str] | None = None, db_path: str | None = None) -> dict:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    steps = [*SOURCES, *WEATHER_STEPS]
+    steps = [*SOURCES, *WEATHER_STEPS, *BILLED_STEPS]
     parser.add_argument("--only", help=f"comma-separated subset of: {', '.join(steps)}")
     parser.add_argument("--db", help="database path (default: data/places.db)")
+    parser.add_argument("--allow-billed", action="store_true",
+                        help="allow steps that can be billed (google_ids). Off by default.")
     args = parser.parse_args(argv)
     only = [s.strip() for s in args.only.split(",")] if args.only else None
     unknown = set(only or []) - set(steps)
     if unknown:
         parser.error(f"unknown source(s): {', '.join(sorted(unknown))}")
-    results = seed(only, args.db)
+    results = seed(only, args.db, allow_billed=args.allow_billed)
     summary = stats(connect(args.db))
     print(f"\nCache now holds {summary['total']} places: {summary['by_kind']}")
     return 1 if "failed" in results.values() else 0

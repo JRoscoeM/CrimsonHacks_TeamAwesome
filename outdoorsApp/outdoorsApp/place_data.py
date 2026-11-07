@@ -146,20 +146,58 @@ def _cache_facts(place) -> dict:
     return facts
 
 
-def _from_cache(place, samples: list[dict], climate: dict | None) -> dict:
+def _season_curve(samples: list[dict], ski: bool) -> list[tuple[float, float]]:
+    """(average high °F, season score) points fitted to the curated places' own scores.
+
+    The curated season scores track temperature closely (non-ski places peak with highs
+    in the 70s; ski resorts peak in the 30s), so cache places get scores on the same
+    scale from their real monthly temperatures.
+    """
+    bins: dict[int, list[int]] = {}
+    for sample in samples:
+        if (sample["Type"] == "Ski Resort") == ski:
+            for high, score in zip(sample["HighsF"], sample["Season"]):
+                bins.setdefault(int(high // 10 * 10), []).append(score)
+    return [(b + 5, sum(v) / len(v)) for b, v in sorted(bins.items()) if len(v) >= 2]
+
+
+def _season_from_highs(highs: list[float], curve: list[tuple[float, float]]) -> list[int]:
+    def score(high: float) -> int:
+        if high <= curve[0][0]:
+            return round(curve[0][1])
+        for (x0, y0), (x1, y1) in zip(curve, curve[1:]):
+            if high <= x1:
+                return round(y0 + (y1 - y0) * (high - x0) / (x1 - x0))
+        return round(curve[-1][1])
+    return [score(h) for h in highs]
+
+
+def _from_cache(place, samples: list[dict], climate: dict | None, crowds: dict | None) -> dict:
+    from .places.visitation import crowd_levels
+
     place_type = place.kind_label
     ref = _reference_sample(place, place_type, samples)
     image = place.images[0] if place.images else {}
     reservable = place.kind == "campground" and bool(place.reservable)
+    notes, borrowed = [], []
     if climate:
         highs, elevation_ft = list(climate["highs_f"]), climate.get("elevation_ft")
-        note = (f"Average temperatures come from {climate['period']} weather records for this spot. "
-                f"Seasonal scores and crowds are estimated from {ref['FacilityName']}, the closest "
-                "similar place we have detailed data for.")
+        season = _season_from_highs(highs, _season_curve(samples, ski=place.kind == "ski_resort"))
+        notes.append(f"Temperatures come from {climate['period']} weather records for this spot, and "
+                     "seasonal scores are calculated from them.")
     else:
-        highs, elevation_ft = list(ref["HighsF"]), None
-        note = (f"Seasonal scores, crowds and temperatures are estimated from {ref['FacilityName']}, "
-                "the closest similar place we have detailed data for.")
+        highs, elevation_ft, season = list(ref["HighsF"]), None, list(ref["Season"])
+        borrowed += ["temperatures", "seasonal scores"]
+    if crowds:
+        crowd = crowd_levels(crowds["monthly"])
+        notes.append(f"Crowd levels come from NPS visitor counts ({crowds['period']}).")
+    else:
+        crowd = list(ref["Crowds"])
+        borrowed.append("crowd levels")
+    if borrowed:
+        notes.append(f"{' and '.join(borrowed).capitalize()} are estimated from {ref['FacilityName']}, "
+                     "the closest similar place we have detailed data for.")
+    note = " ".join(notes)
     return {
         "FacilityID": place.id, "FacilityName": place.name, "Type": place_type,
         "FacilityDescription": place.description or f"{place_type} in Utah.",
@@ -170,7 +208,7 @@ def _from_cache(place, samples: list[dict], climate: dict | None) -> dict:
         "Cost": "Check with the site", "CostTier": None,
         "Reservation": reservable,
         "ReservationNote": "Campsites can be reserved on Recreation.gov." if reservable else "",
-        "Season": list(ref["Season"]), "Crowds": list(ref["Crowds"]), "HighsF": highs,
+        "Season": season, "Crowds": crowd, "HighsF": highs,
         "EstimateNote": note,
         "Access": {"wheelchair": place.wheelchair is True, "stroller": False, "paved": False,
                    "restrooms": place.restrooms is True, "quiet": False, "shade": False, "medical": False},
@@ -195,10 +233,19 @@ def _db_path() -> Path | None:
     return path if path.is_file() else None
 
 
-# FacilityID -> cache place id, for places whose weather comes from the cache.
+# FacilityID -> cache place id, for places with live data (weather, drives) in the cache.
 _FORECAST_SOURCE: dict[str, str] = {}
 # FacilityID -> latest forecast {local_time, current_temp_f, current_code, days[...]}
 FORECASTS: dict[str, dict] = {}
+# FacilityID -> Google place ID (ratings and reviews are looked up live, never stored).
+GOOGLE_IDS: dict[str, str] = {}
+# origin key ("40.76,-111.89") -> {FacilityID: (road miles, hours)}
+DRIVES: dict[str, dict[str, tuple[float, float]]] = {}
+# Google lookups are billed, so they're OFF unless explicitly turned on:
+# "off" (default): never call Google; ratings are the hard-coded sample ones.
+# "details": look up a place's Google rating when someone opens it.
+# "all": also look up every place in the background once per app run.
+GOOGLE_RATINGS = os.environ.get("GOOGLE_RATINGS", "off").lower()
 
 
 def _with_cache(samples: list[dict]) -> list[dict]:
@@ -206,13 +253,14 @@ def _with_cache(samples: list[dict]) -> list[dict]:
     if db_path is None:
         return samples
     from .places import connect, find_places
-    from .places.store import load_climate
+    from .places.store import load_climate, load_visitation
 
     try:
         conn = connect(db_path)
         try:
             cached = find_places(limit=None, include_raw=True, conn=conn)
             climate = load_climate(conn)
+            visitation = load_visitation(conn)
         finally:
             conn.close()
     except sqlite3.Error:
@@ -223,13 +271,19 @@ def _with_cache(samples: list[dict]) -> list[dict]:
     for place in cached:
         match = _matching_sample(place, samples)
         if match is None:
-            extra.append(_from_cache(place, samples, climate.get(place.id)))
+            crowds = visitation.get(place.park_code) if place.source in ("nps", "nps_campgrounds") else None
+            extra.append(_from_cache(place, samples, climate.get(place.id), crowds))
             _FORECAST_SOURCE[place.id] = place.id
+            if place.google_place_id:
+                GOOGLE_IDS[place.id] = place.google_place_id
             continue
         # Same place as a curated sample: keep its hand-written details (including its
         # temperatures, which describe the area people visit rather than the park's center
-        # point), and add the real photo, website, live forecast and contact facts.
+        # point), and add the real photo, website, live forecast, drive times, Google
+        # rating and contact facts.
         _FORECAST_SOURCE.setdefault(match["FacilityID"], place.id)
+        if place.google_place_id:
+            GOOGLE_IDS.setdefault(match["FacilityID"], place.google_place_id)
         if place.image_url and not match.get("Image"):
             match["Image"] = place.image_url
             match["ImageCredit"] = (place.images[0] if place.images else {}).get("credit", "")
@@ -312,6 +366,109 @@ def weather_text(code: int | None) -> str:
     from .places.weather import describe
 
     return describe(code)
+
+
+# --- Address search ----------------------------------------------------------
+
+def find_location(query: str) -> dict | None:
+    """{lat, lon, label} for a typed address, town or landmark (Nominatim, free; saved).
+
+    Raises places.http.SourceError if the geocoder can't be reached.
+    """
+    from .places import connect
+    from .places.geocode import geocode
+
+    conn = connect(_db_path())  # creates data/places.db if it doesn't exist yet
+    try:
+        return geocode(query, conn)
+    finally:
+        conn.close()
+
+
+# --- Drive times -------------------------------------------------------------
+
+def drive_for(lat: float, lon: float, facility_id: str) -> tuple[float, float] | None:
+    """(road miles, hours) from the origin, if saved; None means use the estimate."""
+    from .places.travel import origin_key
+
+    return DRIVES.get(origin_key(lat, lon), {}).get(facility_id)
+
+
+def load_drives(lat: float, lon: float) -> bool:
+    """Load saved road drive times from this origin, downloading missing ones from OSRM.
+
+    Returns True if anything new was loaded. Network errors fall back to the estimate.
+    """
+    db_path = _db_path()
+    if db_path is None or not _FORECAST_SOURCE:
+        return False
+    from .places import connect
+    from .places.http import SourceError
+    from .places.travel import DURATION_FACTOR, ensure_drive_times, origin_key
+
+    key = origin_key(lat, lon)
+    if key in DRIVES and len(DRIVES[key]) >= len(_FORECAST_SOURCE):
+        return False
+    conn = connect(db_path)
+    try:
+        by_cache_id = ensure_drive_times(lat, lon, conn)
+    except SourceError:
+        return False
+    finally:
+        conn.close()
+    DRIVES[key] = {
+        fid: (by_cache_id[cid][1], by_cache_id[cid][0] * DURATION_FACTOR / 60)
+        for fid, cid in _FORECAST_SOURCE.items() if cid in by_cache_id
+    }
+    return True
+
+
+# --- Google ratings and reviews ----------------------------------------------
+
+def _apply_google(facility_id: str, details: dict) -> None:
+    place = BY_ID[facility_id]
+    if details.get("rating") is not None and details.get("count"):
+        place["Rating"], place["Reviews"] = float(details["rating"]), int(details["count"])
+        place["RatingSource"] = "Google"
+    if details.get("reviews"):
+        place["UserReviews"] = [
+            [f"{r['author']} · {r['when']}" if r["when"] else r["author"], r["stars"], r["text"]]
+            for r in details["reviews"]
+        ]
+        place["ReviewSource"] = "Google"
+    if details.get("maps_url"):
+        place["MapsUrl"] = details["maps_url"]
+
+
+def load_google(facility_id: str) -> bool:
+    """Look up one place's Google rating and reviews (in memory only). True if it changed."""
+    if GOOGLE_RATINGS == "off" or facility_id not in GOOGLE_IDS or facility_id not in BY_ID:
+        return False
+    from .places.google import cached_details, place_details
+
+    google_id = GOOGLE_IDS[facility_id]
+    if cached_details(google_id) is not None and BY_ID[facility_id].get("RatingSource") == "Google":
+        return False
+    details = place_details(google_id)
+    if not details:
+        return False
+    _apply_google(facility_id, details)
+    return True
+
+
+_prefetched = False
+
+
+def prefetch_google() -> bool:
+    """With GOOGLE_RATINGS=all: look up every matched place once per app run."""
+    global _prefetched
+    if GOOGLE_RATINGS != "all" or _prefetched:
+        return False
+    _prefetched = True
+    changed = False
+    for facility_id in list(GOOGLE_IDS):
+        changed = load_google(facility_id) or changed
+    return changed
 
 
 PLACES = _with_cache(SAMPLE_PLACES)
@@ -405,7 +562,8 @@ def elevation(value: int | None, metric: bool) -> str:
 def rating_text(place: dict) -> str:
     if not place["Reviews"]:
         return "No rating yet"
-    return f"★ {place['Rating']:.1f} ({place['Reviews']:,})"
+    source = " on Google" if place.get("RatingSource") == "Google" else ""
+    return f"★ {place['Rating']:.1f} ({place['Reviews']:,}){source}"
 
 
 def drive_time(hours: float) -> str:
@@ -422,23 +580,31 @@ class TripStats:
     crowds: float
     high_f: float
     miles: float
+    road_hours: float | None = None  # real drive time when known
 
     @property
     def hours(self) -> float:
-        return self.miles / 65
+        return self.road_hours if self.road_hours is not None else self.miles / 65
+
+    @property
+    def routed(self) -> bool:
+        return self.road_hours is not None
 
 
 def compute(place: dict, months: list[int], origin: tuple[float, float],
-            high_f: float | None = None) -> TripStats:
-    """``high_f`` overrides the monthly-average high, e.g. with the forecast for the trip."""
+            high_f: float | None = None, drive: tuple[float, float] | None = None) -> TripStats:
+    """``high_f`` overrides the monthly-average high (e.g. with the trip's forecast);
+    ``drive`` = (road miles, hours) replaces the straight-line estimate."""
     if not months:
         raise ValueError("A valid date range is required.")
+    average = lambda key: sum(place[key][m] for m in months) / len(months)
+    high = average("HighsF") if high_f is None else high_f
+    if drive:
+        return TripStats(round(average("Season")), average("Crowds"), high, drive[0], drive[1])
     lat1, lon1, lat2, lon2 = map(math.radians, (*origin, place["FacilityLatitude"], place["FacilityLongitude"]))
     a = math.sin((lat2 - lat1) / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin((lon2 - lon1) / 2) ** 2
     # A rough driving-distance multiplier, deliberately not presented as routing.
     miles = 3958.8 * 2 * math.asin(math.sqrt(min(1, max(0, a)))) * 1.3
-    average = lambda key: sum(place[key][m] for m in months) / len(months)
-    high = average("HighsF") if high_f is None else high_f
     return TripStats(round(average("Season")), average("Crowds"), high, miles)
 
 

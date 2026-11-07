@@ -12,11 +12,13 @@ import reflex as rx
 from reflex.style import set_color_mode
 
 from .place_data import (
-    ACCESS, ACTIVITIES, BY_ID, CITIES, MONTHS, PLACES, TYPES,
+    ACTIVITIES, BY_ID, CITIES, MONTHS, PLACES, TYPES,
     compute, crowd_label, current_conditions, date_error, date_range, distance_text, drive_time,
     elevation, landscape, matches, month_names, packing_list, rating_text,
     saved_ids, score_label, temperature, trip_forecast, trip_months, weather_text,
 )
+from .place_data import drive_for, find_location, load_drives, load_google, prefetch_google
+from .places.http import SourceError
 from .place_data import refresh_weather as refresh_saved_forecasts
 
 MAX_RESULTS = 60  # cards/pins rendered at once; the caption still counts every match
@@ -37,9 +39,7 @@ COMPARISON_ROWS = [
     ("Score for your dates", "score_text"), ("Rating", "rating"),
     ("Estimated drive", "drive_full"), ("High for your dates", "weather"),
     ("Crowds", "crowds"), ("Busiest months", "busy"), ("Cost", "cost"),
-    ("Reservation", "reservation"), ("Wheelchair friendly", "wheelchair"),
-    ("Stroller friendly", "stroller"), ("Quieter setting", "quiet"),
-    ("Dogs", "dogs"), ("Activities", "activities_text"), ("Quieter visit", "quiet_time"),
+    ("Reservation", "reservation"), ("Dogs", "dogs"), ("Activities", "activities_text"), ("Quieter visit", "quiet_time"),
 ]
 
 
@@ -59,13 +59,15 @@ class State(rx.State):
     origin_name: str = "Salt Lake City, UT"
     origin_lat: float = 40.7608
     origin_lon: float = -111.891
-    location_note: str = 'Choose a city or tap "Near me" to use your location.'
+    location_note: str = 'Type a city, address or landmark and press Enter, or tap "Near me".'
     locating: bool = False
     filters_open: bool = False
     detail_open: bool = False
     detail_id: str = "zion"
-    # Bumped after new forecasts are downloaded, so weather-dependent vars recompute.
+    # Bumped when background data arrives, so the vars that use it recompute.
     weather_version: int = 0
+    drive_version: int = 0
+    google_version: int = 0
 
     @rx.event(background=True)
     async def refresh_weather(self):
@@ -73,6 +75,29 @@ class State(rx.State):
         if await asyncio.to_thread(refresh_saved_forecasts):
             async with self:
                 self.weather_version += 1
+
+    @rx.event(background=True)
+    async def load_drives(self):
+        """Road drive times from the current origin (saved, or fetched once from OSRM)."""
+        async with self:
+            lat, lon = self.origin_lat, self.origin_lon
+        if await asyncio.to_thread(load_drives, lat, lon):
+            async with self:
+                self.drive_version += 1
+
+    @rx.event(background=True)
+    async def load_google(self, place_id: str):
+        """Google rating and reviews for one place (kept in memory, never stored)."""
+        if await asyncio.to_thread(load_google, place_id):
+            async with self:
+                self.google_version += 1
+
+    @rx.event(background=True)
+    async def prefetch_google(self):
+        """With GOOGLE_RATINGS=all, look up every place once per app run."""
+        if await asyncio.to_thread(prefetch_google):
+            async with self:
+                self.google_version += 1
 
     @rx.event
     def set_location_text(self, value: str):
@@ -165,17 +190,57 @@ class State(rx.State):
         if place_id in BY_ID:
             self.detail_id = place_id
             self.detail_open = True
+            return State.load_google(place_id)
 
     @rx.event
     def resolve_location(self, value: str):
-        query = value.lower().split(",")[0].strip()
+        """Preset cities resolve instantly; anything else is looked up as an address."""
+        text = value.strip()
+        if not text or text == self.origin_name:
+            self.location_text = self.origin_name
+            return
+        query = text.lower().split(",")[0].strip()
         for name, coordinates in CITIES.items():
             if query and name.lower().split(",")[0] == query:
                 self.location_text = self.origin_name = name
                 self.origin_lat, self.origin_lon = coordinates
-                self.location_note = "Drive times and distances are approximate."
+                self.location_note = "Drive times are by road and approximate."
+                return State.load_drives
+        self.locating = True
+        self.location_note = f"Searching for “{text}”… Still using {self.origin_name}."
+        return State.search_location(text)
+
+    @rx.event
+    def location_key(self, key: str):
+        if key == "Enter":
+            return State.resolve_location(self.location_text)
+
+    @rx.event(background=True)
+    async def search_location(self, query: str):
+        """Geocode a typed address/town/landmark (free OpenStreetMap search), then load drive times."""
+        try:
+            found = await asyncio.to_thread(find_location, query)
+            error = None
+        except SourceError:
+            found, error = None, "Couldn't reach the address search"
+        async with self:
+            self.locating = False
+            if self.location_text.strip() != query:  # the user typed something else meanwhile
                 return
-        self.location_note = f"Choose a suggested city. Still using {self.origin_name}."
+            if not found:
+                reason = error or f"Couldn't find “{query}”. Try a town, address or landmark"
+                self.location_note = f"{reason}. Still using {self.origin_name}."
+                return
+            self.origin_lat, self.origin_lon = found["lat"], found["lon"]
+            self.origin_name = self.location_text = found["label"]
+            self.location_note = f"Using {found['label']}. Loading drive times…"
+            lat, lon = self.origin_lat, self.origin_lon
+        loaded = await asyncio.to_thread(load_drives, lat, lon)
+        async with self:
+            if loaded:
+                self.drive_version += 1
+            if (self.origin_lat, self.origin_lon) == (lat, lon):
+                self.location_note = f"Using {self.origin_name}. Drive times are by road and approximate."
 
     @rx.event
     def locate(self):
@@ -211,7 +276,8 @@ class State(rx.State):
             return
         self.origin_lat, self.origin_lon = lat, lon
         self.origin_name = self.location_text = "Your location"
-        self.location_note = "Using your location. Drive estimates are approximate."
+        self.location_note = "Using your location. Drive times are by road and approximate."
+        return State.load_drives
 
     @rx.var
     def favorites(self) -> list[str]:
@@ -241,21 +307,21 @@ class State(rx.State):
         months = trip_months(self.arrive, self.leave) or [date.today().month - 1]
         forecast = self._forecast(place)
         high = sum(day["high_f"] for day in forecast) / len(forecast) if forecast else None
-        return compute(place, months, (self.origin_lat, self.origin_lon), high_f=high)
+        _ = self.drive_version  # dependency: recompute when drive times arrive
+        drive = drive_for(self.origin_lat, self.origin_lon, place["FacilityID"])
+        return compute(place, months, (self.origin_lat, self.origin_lon), high_f=high, drive=drive)
 
     def _view(self, place: dict) -> dict[str, str]:
+        _ = self.google_version  # dependency: ratings/reviews update in place
         stats = self._stats(place)
         forecast = self._forecast(place) is not None
         now = current_conditions(place["FacilityID"])
         label, color = score_label(stats.score)
         tags = []
         if stats.crowds >= 2.5:
-            tags.append("🔥 Peak season")
+            tags.append("Peak season")
         if place["Reservation"]:
-            tags.append("📅 Reservation")
-        for key, text in [("wheelchair", "♿ Wheelchair"), ("stroller", "Stroller friendly"), ("quiet", "Quieter setting")]:
-            if place["Access"][key]:
-                tags.append(text)
+            tags.append("Reservation")
         if place["DogFriendly"]:
             tags.append("Dogs welcome")
         view = {
@@ -268,8 +334,12 @@ class State(rx.State):
             "score": str(stats.score), "score_label": label, "score_color": color,
             "score_text": f"{stats.score}/100 · {label}",
             "rating": rating_text(place),
-            "drive": drive_time(stats.hours),
-            "drive_full": f"{drive_time(stats.hours)} · {distance_text(stats.miles, self.metric)}",
+            "drive": drive_time(stats.hours) + ("" if stats.routed else " (est.)"),
+            "drive_full": f"{drive_time(stats.hours)} · {distance_text(stats.miles, self.metric)}"
+                          + (" by road" if stats.routed else " (estimate)"),
+            "maps_url": place.get("MapsUrl", ""),
+            "review_source": "Reviews from Google" if place.get("ReviewSource") == "Google"
+                             else "Sample reviews",
             "weather": temperature(stats.high_f, self.metric) + (" forecast" if forecast else ""),
             "weather_kind": "Forecast highs" if forecast else "Average highs",
             "now": (f"{temperature(now['temp_f'], self.metric)}"
@@ -281,13 +351,9 @@ class State(rx.State):
             "cost": place["Cost"], "elevation": elevation(place["ElevationFt"], self.metric),
             "reservation": "Needed" if place["Reservation"] else "Not needed for entry",
             "dogs": "Allowed; rules vary" if place["DogFriendly"] else "Very limited",
-            "wheelchair": "Yes" if place["Access"]["wheelchair"] else "Not listed",
-            "stroller": "Yes" if place["Access"]["stroller"] else "Not listed",
-            "quiet": "Yes" if place["Access"]["quiet"] else "Not listed",
             "busy": month_names(place["Crowds"], 3) or "Rarely busy",
             "best": month_names(place["Season"], 85) or "Check seasonal conditions",
             "quiet_time": place["QuietTime"], "tip": place["Tip"],
-            "access_details": place["AccessDetails"],
             "activities_text": ", ".join(place["Activities"]),
             "peak": "yes" if stats.crowds >= 2.5 else "no",
             "map_x": f"{((place['FacilityLongitude'] + 114.05) * 100 + 20) / 541 * 100:.2f}%",
@@ -409,14 +475,6 @@ class State(rx.State):
         return items
 
     @rx.var
-    def detail_access(self) -> list[dict[str, str]]:
-        return [
-            {"label": label, "status": "✓" if BY_ID[self.detail_id]["Access"][key] else "—",
-             "color": ACCENT if BY_ID[self.detail_id]["Access"][key] else MUTED}
-            for key, label in ACCESS.items()
-        ]
-
-    @rx.var
     def detail_reviews(self) -> list[dict[str, str]]:
         return [
             {"who": who, "stars": "★" * stars + "☆" * (5 - stars), "text": text,
@@ -483,7 +541,6 @@ def brand() -> rx.Component:
         ),
         rx.vstack(
             rx.heading("Utah Wayfinder", size=rx.breakpoints(initial="4", sm="5"), color="white"),
-            rx.text("From powder to sandstone", color="rgba(255,255,255,.9)", font_size="0.8rem"),
             spacing="0", align="start",
         ),
         spacing="3", align="center",
@@ -527,11 +584,13 @@ def header() -> rx.Component:
                         rx.el.input(
                             id="origin", list="cities", value=State.location_text,
                             on_change=State.set_location_text, on_blur=State.resolve_location,
+                            on_key_down=State.location_key,
+                            placeholder="City, address or landmark", enter_key_hint="search",
                             auto_complete="off", width="100%", min_width="0", **CONTROL,
                         ),
                         rx.el.datalist(*[rx.el.option(value=name) for name in CITIES], id="cities"),
                         rx.button(
-                            rx.cond(State.locating, "Locating…", "📍 Near me"), on_click=State.locate,
+                            rx.cond(State.locating, "Locating…", "Near me"), on_click=State.locate,
                             disabled=State.locating, background=ACCENT_SOFT, color=ACCENT,
                             border=f"1px solid {ACCENT}", white_space="nowrap", **BUTTON,
                         ),
@@ -590,7 +649,6 @@ def filter_fields() -> rx.Component:
         filter_group("Good for your dates", [("Only Good or Great", "good")]),
         filter_group("Type", [(kind, f"type:{kind}") for kind in TYPES]),
         filter_group("Activities", [(activity, f"activity:{activity}") for activity in ACTIVITIES]),
-        filter_group("♿ Accessibility", [(label, f"access:{key}") for key, label in ACCESS.items()]),
         rx.vstack(
             rx.text("Rating & drive time", font_weight="800"),
             select_control([("0", "Any rating"), ("4.5", "4.5+ stars"), ("4.7", "4.7+ stars")],
@@ -601,7 +659,7 @@ def filter_fields() -> rx.Component:
         ),
         filter_group("Cost & booking", [("Free", "cost:0"), ("Under $20", "cost:1"), ("$20 or more", "cost:2"),
                                       ("No entry reservation", "no_reservation")]),
-        filter_group("Extras", [("Family friendly", "family"), ("Dog friendly", "dogs"), ("Low crowds", "low_crowds")]),
+        filter_group("Extras", [("Dog friendly", "dogs"), ("Low crowds", "low_crowds")]),
         spacing="4", width="100%", align="start",
     )
 
@@ -681,7 +739,7 @@ def compare_button(place, **props) -> rx.Component:
 def photo_credit(place, **position) -> rx.Component:
     return rx.cond(
         place["image_credit"] != "",
-        rx.text("📷 ", place["image_credit"], position="absolute", color="white", background="rgba(0,0,0,.5)",
+        rx.text("Photo: ", place["image_credit"], position="absolute", color="white", background="rgba(0,0,0,.5)",
                 padding="1px 6px", border_radius="6px", font_size="0.65rem", overflow="hidden",
                 white_space="nowrap", text_overflow="ellipsis", pointer_events="none", **position),
     )
@@ -710,8 +768,8 @@ def place_card(place) -> rx.Component:
         rx.vstack(
             rx.heading(place["name"], as_="h2", size="4", padding_right="74px", min_height="48px"),
             rx.flex(
-                rx.text(place["rating"]), rx.text("🚗 ", place["drive"]), rx.text("🌡 ", place["weather"]),
-                rx.text("👥 ", place["crowds"], " crowds"),
+                rx.text(place["rating"]), rx.text(place["drive"]), rx.text(place["weather"]),
+                rx.text(place["crowds"], " crowds"),
                 wrap="wrap", gap="5px 12px", color=MUTED, font_size="0.82rem",
             ),
             rx.flex(*[rx.cond(place[f"tag{i}"] != "", badge(place[f"tag{i}"])) for i in range(4)], wrap="wrap", gap="6px"),
@@ -785,10 +843,10 @@ def map_view() -> rx.Component:
 def results() -> rx.Component:
     return rx.el.main(
         rx.hstack(
-            chip(rx.fragment("♡ Saved (", State.favorites.length(), ")"), "saved"),
+            chip(rx.fragment("Saved (", State.favorites.length(), ")"), "saved"),
             *[chip(label, token) for label, token in [
                 ("Hiking", "activity:Hiking"), ("Skiing", "activity:Skiing"), ("Camping", "activity:Camping"),
-                ("Accessible", "access:wheelchair"), ("Low crowds", "low_crowds"), ("Family", "family"),
+                ("Low crowds", "low_crowds"),
                 ("Water", "activity:Water"), ("Stargazing", "activity:Stargazing"), ("Free", "cost:0"),
             ]],
             spacing="2", overflow_x="auto", width="100%", padding_bottom="4px", role="group", aria_label="Quick filters",
@@ -863,8 +921,13 @@ def detail_dialog() -> rx.Component:
             ),
             rx.vstack(
                 rx.dialog.description(p["description"], color=INK, font_size="0.95rem", margin="0"),
-                rx.cond(p["url"] != "", rx.link("Official site ↗", href=p["url"], is_external=True,
-                                                color=ACCENT, font_weight="700", font_size="0.9rem")),
+                rx.hstack(
+                    rx.cond(p["url"] != "", rx.link("Official site ↗", href=p["url"], is_external=True,
+                                                    color=ACCENT, font_weight="700", font_size="0.9rem")),
+                    rx.cond(p["maps_url"] != "", rx.link("View on Google Maps ↗", href=p["maps_url"], is_external=True,
+                                                         color=ACCENT, font_weight="700", font_size="0.9rem")),
+                    spacing="4", wrap="wrap",
+                ),
                 rx.cond(p["estimate_note"] != "", small_text(p["estimate_note"])),
                 rx.box(
                     rx.text(p["score_text"], " for ", State.trip_label, font_weight="800", color=BRAND),
@@ -874,7 +937,7 @@ def detail_dialog() -> rx.Component:
                     padding="12px 14px", background=ACCENT_SOFT, border_radius="10px", width="100%",
                 ),
                 rx.cond(State.detail_forecast.length() > 0, detail_section(
-                    "🌤 Forecast for your trip",
+                    "Forecast for your trip",
                     rx.grid(
                         rx.foreach(State.detail_forecast, lambda day: rx.vstack(
                             small_text(day["day"], font_weight="700"),
@@ -896,12 +959,12 @@ def detail_dialog() -> rx.Component:
                     columns="repeat(2, minmax(0, 1fr))", gap="14px", width="100%",
                 ),
                 rx.cond(p["peak"] == "yes", rx.box(
-                    rx.text("🔥 Peak season for your dates", font_weight="800"),
+                    rx.text("Peak season for your dates", font_weight="800"),
                     rx.text("Arrive early, or try: ", p["quiet_time"], font_size="0.9rem", margin_top="4px"),
                     background="#EDE3CF", color="#5B4A2A", padding="12px 14px", border_radius="10px", width="100%",
                 )),
                 detail_section(
-                    "📆 When to go",
+                    "When to go",
                     rx.grid(
                         rx.foreach(State.detail_months, lambda month: rx.vstack(
                             rx.box(height=month["height"], width="70%", border_radius="4px 4px 0 0", background=month["color"]),
@@ -918,21 +981,15 @@ def detail_dialog() -> rx.Component:
                 ),
                 rx.cond(
                     (State.detail_things.length() > 0) | (State.detail_activities.length() > 0),
-                    detail_section("🎯 Things to do", text_list(State.detail_things),
+                    detail_section("Things to do", text_list(State.detail_things),
                                    rx.flex(rx.foreach(State.detail_activities, badge), wrap="wrap", gap="6px")),
                 ),
-                detail_section("👀 What to expect", text_list(State.detail_expectations)),
-                detail_section("🎒 Packing list for your dates", text_list(State.detail_packing, checklist=True)),
-                detail_section(
-                    "♿ Access details", rx.text(p["access_details"], font_size="0.9rem"),
-                    rx.grid(rx.foreach(State.detail_access, lambda item: rx.text(
-                        rx.text.span(item["status"], color=item["color"], font_weight="800"), " ", item["label"], font_size="0.85rem",
-                    )), columns=rx.breakpoints(initial="1fr", sm="repeat(2, 1fr)"), gap="6px", width="100%"),
-                ),
-                detail_section("🤫 For a quieter visit", rx.text(p["quiet_time"], font_size="0.9rem")),
-                detail_section("🌍 First time in Utah?", rx.text(p["tip"], font_size="0.9rem")),
+                detail_section("What to expect", text_list(State.detail_expectations)),
+                detail_section("Packing list for your dates", text_list(State.detail_packing, checklist=True)),
+                detail_section("For a quieter visit", rx.text(p["quiet_time"], font_size="0.9rem")),
+                detail_section("First time in Utah?", rx.text(p["tip"], font_size="0.9rem")),
                 rx.cond(State.detail_reviews.length() > 0, detail_section(
-                    "💬 Reviews", small_text("Sample reviews for the prototype"),
+                    "Reviews", small_text(p["review_source"]),
                     rx.foreach(State.detail_reviews, lambda review: rx.box(
                         rx.text(review["stars"], color="#7A6A2E", letter_spacing="1px", aria_label=review["label"]),
                         rx.text("“", review["text"], "”", font_size="0.9rem", margin="4px 0"),
@@ -940,7 +997,6 @@ def detail_dialog() -> rx.Component:
                     )),
                 )),
                 compare_button(p, width="100%"),
-                small_text("Prototype with sample data. Confirm current conditions, fees and accessibility with the destination before you go."),
                 spacing="5", align="start", padding="18px", width="100%",
             ),
             padding="0", width="calc(100vw - 24px)", max_width="640px", max_height="92dvh",
@@ -1058,7 +1114,7 @@ def index() -> rx.Component:
             padding="0 16px 120px", width="100%",
         ),
         rx.button(
-            rx.cond(State.show_map, "☰ List", "🗺️ Map"), on_click=State.toggle_view,
+            rx.cond(State.show_map, "List", "Map"), on_click=State.toggle_view,
             aria_label=rx.cond(State.show_map, "Switch to list view", "Switch to map view"),
             aria_pressed=State.show_map, position="fixed", right="16px",
             bottom=rx.cond(State.selected_places.length() > 0, "84px", "20px"),
@@ -1084,5 +1140,6 @@ app = rx.App(
 )
 # This design is intentionally light, including when an older local session
 # saved a dark/system theme before the mockup was ported.
-app.add_page(index, title="Utah Wayfinder", on_load=State.refresh_weather)
-app.add_page(compare_page, route="/compare", title="Compare Utah destinations", on_load=State.refresh_weather)
+ON_LOAD = [State.refresh_weather, State.load_drives, State.prefetch_google]
+app.add_page(index, title="Utah Wayfinder", on_load=ON_LOAD)
+app.add_page(compare_page, route="/compare", title="Compare Utah destinations", on_load=ON_LOAD)

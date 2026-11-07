@@ -111,7 +111,7 @@ class TripPlanningTests(unittest.TestCase):
         self.state.set_max_drive("1")
         self.state.clear_filters()
         self.assertEqual(self.state.filter_count, 0)
-        self.assertEqual(len(self.state.results), 21)
+        self.assertEqual(len(self.state.results), 20)
         self.assertEqual(self.state.favorites, ["zion"])
         self.assertEqual(self.state.selected_places, ["zion"])
 
